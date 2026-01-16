@@ -52,6 +52,7 @@ import { ApplicationEntity } from './subscriptions/applications/entity/applicati
 import { PlanApplication } from './subscriptions/plan-applications/entity/plan-applications.entity';
 import { CashTransactionsModule } from './cash-transactions/cash-transactions.module';
 import { ReceiptsModule } from './receipts/receipts.module';
+import { OrdersModule } from './orders/orders.module';
 import { SubscriptionApplication } from './subscriptions/subscription-application/entity/subscription-application.entity';
 import { Item } from './products-inventory/stocks/items/entities/item.entity';
 import { Movement } from './products-inventory/stocks/movements/entities/movement.entity';
@@ -98,7 +99,7 @@ import { OnlinePayment } from './online-ordering-system/online-payment/entities/
 import { KitchenDisplayDeviceModule } from './kitchen-display-system/kitchen-display-device/kitchen-display-device.module';
 import { KitchenOrderModule } from './kitchen-display-system/kitchen-order/kitchen-order.module';
 import { QRMenuSection } from './qr-code/qr-menu-section/entity/qr-menu-section.entity';
-import { QrMenuSectionModule } from './qr-code/qr-menu-section/qr-menu-section.module';
+
 import { LoyaltyPointTransaction } from './loyalty/loyalty-points-transaction/entities/loyalty-points-transaction.entity';
 import { LoyaltyReward } from './loyalty/loyalty-reward/entities/loyalty-reward.entity';
 import { QRMenuSectionModule } from './qr-code/qr-menu-section/qr-menu-section.module';
@@ -106,6 +107,16 @@ import { QRMenuItem } from './qr-code/qr-menu-item/entity/qr-menu-item.entity';
 import { QRMenuItemModule } from './qr-code/qr-menu-item/qr-menu-item.module';
 import { QRLocation } from './qr-code/qr-location/entity/qr-location.entity';
 import { QRLocationModule } from './qr-code/qr-location/qr-location.module';
+import { KitchenOrderItemModule } from './kitchen-display-system/kitchen-order-item/kitchen-order-item.module';
+import { KitchenOrderItem } from './kitchen-display-system/kitchen-order-item/entities/kitchen-order-item.entity';
+import { KitchenEventLogModule } from './kitchen-display-system/kitchen-event-log/kitchen-event-log.module';
+import { KitchenEventLog } from './kitchen-display-system/kitchen-event-log/entities/kitchen-event-log.entity';
+import { MarketingCampaignModule } from './marketing/marketing_campaing/marketing_campaing.module';
+import { MarketingCampaign } from './marketing/marketing_campaing/entities/marketing_campaing.entity';
+import { MarketingCampaingAudienceModule } from './marketing/marketing-campaing-audience/marketing-campaing-audience.module';
+import { MarketingCampaignAudience } from './marketing/marketing-campaing-audience/entities/marketing-campaing-audience.entity';
+import { MarketingSegmentsModule } from './marketing/marketing-segments/marketing-segments.module';
+import { MarketingSegment } from './marketing/marketing-segments/entities/marketing-segment.entity';
 
 @Module({
   imports: [
@@ -165,6 +176,8 @@ import { QRLocationModule } from './qr-code/qr-location/qr-location.module';
           KitchenStation,
           KitchenDisplayDevice,
           KitchenOrder,
+          KitchenOrderItem,
+          KitchenEventLog,
           OnlineStore,
           QRMenu,
           QRMenuSection,
@@ -182,6 +195,9 @@ import { QRLocationModule } from './qr-code/qr-location/qr-location.module';
           OnlineDeliveryInfo,
           OnlinePayment,
           QRLocation,
+          MarketingCampaign,
+          MarketingCampaignAudience,
+          MarketingSegment,
         ],
         synchronize: true,
       }),
@@ -211,6 +227,7 @@ import { QRLocationModule } from './qr-code/qr-location/qr-location.module';
     PlanApplicationsModule,
     CashTransactionsModule,
     ReceiptsModule,
+    OrdersModule,
     PurchaseOrderModule,
     PurchaseOrderItemModule,
     FeaturesModule,
@@ -241,10 +258,14 @@ import { QRLocationModule } from './qr-code/qr-location/qr-location.module';
     KitchenDisplayDeviceModule,
 
     KitchenOrderModule,
-    QrMenuSectionModule,
     QRMenuSectionModule,
     QRMenuItemModule,
     QRLocationModule,
+    KitchenOrderItemModule,
+    KitchenEventLogModule,
+    MarketingCampaignModule,
+    MarketingCampaingAudienceModule,
+    MarketingSegmentsModule,
   ],
 })
 export class AppModule {}
