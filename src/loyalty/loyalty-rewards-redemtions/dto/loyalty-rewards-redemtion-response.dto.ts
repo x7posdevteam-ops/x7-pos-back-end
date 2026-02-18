@@ -14,20 +14,23 @@ export class LoyaltyRewardsRedemtionResponseDto {
     @ApiProperty({
         type: () => LoyaltyCustomerLittleResponseDto,
         description: 'Loyalty customer who redeemed the reward',
+        nullable: true,
     })
-    loyaltyCustomer: LoyaltyCustomerLittleResponseDto;
+    loyaltyCustomer: LoyaltyCustomerLittleResponseDto | null;
 
     @ApiProperty({
         type: () => LoyaltyRewardLittleResponseDto,
         description: 'Reward being redeemed',
+        nullable: true,
     })
-    reward: LoyaltyRewardLittleResponseDto;
+    reward: LoyaltyRewardLittleResponseDto | null;
 
     @ApiProperty({
         type: () => OrderLittleResponseDto,
         description: 'Order where the reward was redeemed',
+        nullable: true,
     })
-    order: OrderLittleResponseDto;
+    order: OrderLittleResponseDto | null;
 
     @ApiProperty({
         example: 100,

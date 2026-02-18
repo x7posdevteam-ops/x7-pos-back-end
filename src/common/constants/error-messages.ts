@@ -54,6 +54,7 @@ export enum ErrorMessage {
   LOYALTY_TIER_NOT_FOUND = 'Loyalty Tier not found',
   LOYALTY_CUSTOMER_NOT_FOUND = 'Loyalty Customer not found',
   LOYALTY_REWARD_NOT_FOUND = 'Loyalty Reward not found',
+  LOYALTY_REWARDS_REDEMPTION_NOT_FOUND = 'Loyalty Rewards Redemption not found',
   LOYALTY_POINTS_TRANSACTION_NOT_FOUND = 'Loyalty Points Transaction not found',
   QR_MENU_NOT_FOUND = 'QR Menu not found',
   QR_MENU_SECTION_NOT_FOUND = 'QR Menu Section not found',

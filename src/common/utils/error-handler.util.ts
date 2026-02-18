@@ -16,6 +16,10 @@ export class ErrorHandler {
     throw new BadRequestException(message);
   }
 
+  static badRequest(message: string): never {
+    throw new BadRequestException(message);
+  }
+
   static invalidId(message: string = ErrorMessage.INVALID_ID): never {
     throw new BadRequestException(message);
   }

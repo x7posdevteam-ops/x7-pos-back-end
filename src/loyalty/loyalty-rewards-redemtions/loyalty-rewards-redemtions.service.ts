@@ -1,26 +1,382 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CreateLoyaltyRewardsRedemtionDto } from './dto/create-loyalty-rewards-redemtion.dto';
 import { UpdateLoyaltyRewardsRedemtionDto } from './dto/update-loyalty-rewards-redemtion.dto';
+import { LoyaltyRewardsRedemtion } from './entities/loyalty-rewards-redemtion.entity';
+import { LoyaltyCustomer } from '../loyalty-customer/entities/loyalty-customer.entity';
+import { LoyaltyReward } from '../loyalty-reward/entities/loyalty-reward.entity';
+import { Order } from '../../orders/entities/order.entity';
+import { GetLoyaltyRewardsRedemtionsQueryDto } from './dto/get-loyalty-rewards-redemtions-query.dto';
+import {
+  LoyaltyRewardsRedemtionResponseDto,
+  OneLoyaltyRewardsRedemtionResponse,
+} from './dto/loyalty-rewards-redemtion-response.dto';
+import { AllPaginatedLoyaltyRewardsRedemtionDto } from './dto/all-paginated-loyalty-rewards-redemtion.dto';
+import { ErrorHandler } from '../../common/utils/error-handler.util';
+import { ErrorMessage } from '../../common/constants/error-messages';
+import { LoyaltyPointTransaction } from '../loyalty-points-transaction/entities/loyalty-points-transaction.entity';
+import { LoyaltyPointsSource } from '../loyalty-points-transaction/constants/loyalty-points-source.enum';
 
 @Injectable()
 export class LoyaltyRewardsRedemtionsService {
-  create(createLoyaltyRewardsRedemtionDto: CreateLoyaltyRewardsRedemtionDto) {
-    return 'This action adds a new loyaltyRewardsRedemtion';
+  constructor(
+    @InjectRepository(LoyaltyRewardsRedemtion)
+    private readonly loyaltyRewardsRedemtionRepo: Repository<LoyaltyRewardsRedemtion>,
+    @InjectRepository(LoyaltyCustomer)
+    private readonly loyaltyCustomerRepo: Repository<LoyaltyCustomer>,
+    @InjectRepository(LoyaltyReward)
+    private readonly loyaltyRewardRepo: Repository<LoyaltyReward>,
+    @InjectRepository(Order)
+    private readonly orderRepo: Repository<Order>,
+    private readonly dataSource: DataSource,
+  ) { }
+
+  async create(
+    createLoyaltyRewardsRedemtionDto: CreateLoyaltyRewardsRedemtionDto,
+  ): Promise<OneLoyaltyRewardsRedemtionResponse> {
+    const {
+      loyalty_customer_id,
+      reward_id,
+      order_id,
+      redeemed_points,
+      ...redemptionData
+    } = createLoyaltyRewardsRedemtionDto;
+
+    const loyaltyCustomer = await this.loyaltyCustomerRepo.findOneBy({
+      id: loyalty_customer_id,
+    });
+
+    if (!loyaltyCustomer) {
+      ErrorHandler.notFound(ErrorMessage.LOYALTY_CUSTOMER_NOT_FOUND);
+    }
+
+    // 1. Validate Points
+    if (loyaltyCustomer.currentPoints < redeemed_points) {
+      // Assuming ErrorHandler has a method for bad request or custom logic
+      ErrorHandler.badRequest('Insufficient loyalty points');
+    }
+
+    const reward = await this.loyaltyRewardRepo.findOneBy({
+      id: reward_id,
+    });
+
+    if (!reward) {
+      ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARD_NOT_FOUND);
+    }
+
+    const order = await this.orderRepo.findOneBy({
+      id: order_id,
+    });
+
+    if (!order) {
+      ErrorHandler.notFound(ErrorMessage.ORDER_NOT_FOUND);
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 2. Create Redemption
+      const newRedemption = queryRunner.manager.create(LoyaltyRewardsRedemtion, {
+        loyaltyCustomer,
+        reward,
+        order,
+        redeemedPoints: redeemed_points,
+        ...redemptionData,
+      });
+
+      const savedRedemption = await queryRunner.manager.save(newRedemption);
+
+      // 3. Deduct Points
+      loyaltyCustomer.currentPoints -= redeemed_points;
+      await queryRunner.manager.save(loyaltyCustomer);
+
+      // 4. Create Transaction Record
+      const pointTransaction = queryRunner.manager.create(LoyaltyPointTransaction, {
+        loyaltyCustomer,
+        order,
+        source: LoyaltyPointsSource.REDEMPTION,
+        points: -redeemed_points,
+        description: `Redemption of reward: ${reward.name}`,
+      });
+      await queryRunner.manager.save(pointTransaction);
+
+      await queryRunner.commitTransaction();
+
+      return this.findOne(savedRedemption.id, 'Created');
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      ErrorHandler.handleDatabaseError(error);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  findAll() {
-    return `This action returns all loyaltyRewardsRedemtions`;
+  async findAll(
+    query: GetLoyaltyRewardsRedemtionsQueryDto,
+  ): Promise<AllPaginatedLoyaltyRewardsRedemtionDto> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.loyaltyRewardsRedemtionRepo
+      .createQueryBuilder('redemption')
+      .leftJoinAndSelect('redemption.loyaltyCustomer', 'loyaltyCustomer')
+      .leftJoinAndSelect('redemption.reward', 'reward')
+      .leftJoinAndSelect('redemption.order', 'order');
+
+    if (query.min_redeemed_points) {
+      queryBuilder.andWhere('redemption.redeemedPoints >= :minPoints', {
+        minPoints: query.min_redeemed_points,
+      });
+    }
+
+    if (query.max_redeemed_points) {
+      queryBuilder.andWhere('redemption.redeemedPoints <= :maxPoints', {
+        maxPoints: query.max_redeemed_points,
+      });
+    }
+
+    const total = await queryBuilder.getCount();
+
+    const redemptions = await queryBuilder
+      .orderBy('redemption.redeemedAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getMany();
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    const data: LoyaltyRewardsRedemtionResponseDto[] = redemptions.map(
+      (redemption) => ({
+        id: redemption.id,
+        loyaltyCustomer: redemption.loyaltyCustomer
+          ? {
+            id: redemption.loyaltyCustomer.id,
+            current_points: redemption.loyaltyCustomer.currentPoints,
+            lifetime_points: redemption.loyaltyCustomer.lifetimePoints,
+          }
+          : null,
+        reward: redemption.reward
+          ? {
+            id: redemption.reward.id,
+            name: redemption.reward.name,
+            description: redemption.reward.description,
+            cost_points: redemption.reward.costPoints,
+          }
+          : null,
+        order: redemption.order
+          ? {
+            id: redemption.order.id,
+            businessStatus: redemption.order.status,
+          }
+          : null,
+        redeemed_points: redemption.redeemedPoints,
+        redeemed_at: redemption.redeemedAt,
+      }),
+    );
+
+    return {
+      statusCode: 200,
+      message: 'Loyalty Rewards Redemptions retrieved successfully',
+      data,
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext,
+      hasPrev,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} loyaltyRewardsRedemtion`;
+  async findOne(
+    id: number,
+    createdUpdateDelete?: string,
+  ): Promise<OneLoyaltyRewardsRedemtionResponse> {
+    if (!id || id <= 0) {
+      ErrorHandler.invalidId('Redemption ID is incorrect');
+    }
+
+    const queryBuilder = this.loyaltyRewardsRedemtionRepo
+      .createQueryBuilder('redemption')
+      .leftJoinAndSelect('redemption.loyaltyCustomer', 'loyaltyCustomer')
+      .leftJoinAndSelect('redemption.reward', 'reward')
+      .leftJoinAndSelect('redemption.order', 'order')
+      .where('redemption.id = :id', { id });
+
+    const redemption = await queryBuilder.getOne();
+
+    if (!redemption) {
+      ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARDS_REDEMPTION_NOT_FOUND);
+    }
+
+    const dataForResponse: LoyaltyRewardsRedemtionResponseDto = {
+      id: redemption.id,
+      loyaltyCustomer: redemption.loyaltyCustomer
+        ? {
+          id: redemption.loyaltyCustomer.id,
+          current_points: redemption.loyaltyCustomer.currentPoints,
+          lifetime_points: redemption.loyaltyCustomer.lifetimePoints,
+        }
+        : null,
+      reward: redemption.reward
+        ? {
+          id: redemption.reward.id,
+          name: redemption.reward.name,
+          description: redemption.reward.description,
+          cost_points: redemption.reward.costPoints,
+        }
+        : null,
+      order: redemption.order
+        ? {
+          id: redemption.order.id,
+          businessStatus: redemption.order.status,
+        }
+        : null,
+      redeemed_points: redemption.redeemedPoints,
+      redeemed_at: redemption.redeemedAt,
+    };
+
+    let response: OneLoyaltyRewardsRedemtionResponse;
+
+    switch (createdUpdateDelete) {
+      case 'Created':
+        response = {
+          statusCode: 201,
+          message: `Redemption ${createdUpdateDelete} successfully`,
+          data: dataForResponse,
+        };
+        break;
+      case 'Updated':
+        response = {
+          statusCode: 200,
+          message: `Redemption ${createdUpdateDelete} successfully`,
+          data: dataForResponse,
+        };
+        break;
+      case 'Deleted':
+        response = {
+          statusCode: 200,
+          message: `Redemption ${createdUpdateDelete} successfully`,
+          data: dataForResponse,
+        };
+        break;
+      default:
+        response = {
+          statusCode: 200,
+          message: 'Redemption retrieved successfully',
+          data: dataForResponse,
+        };
+        break;
+    }
+    return response;
   }
 
-  update(id: number, updateLoyaltyRewardsRedemtionDto: UpdateLoyaltyRewardsRedemtionDto) {
-    return `This action updates a #${id} loyaltyRewardsRedemtion`;
+  async update(
+    id: number,
+    updateLoyaltyRewardsRedemtionDto: UpdateLoyaltyRewardsRedemtionDto,
+  ): Promise<OneLoyaltyRewardsRedemtionResponse> {
+    if (!id || id <= 0) {
+      ErrorHandler.invalidId('Redemption ID is incorrect');
+    }
+
+    const redemption = await this.loyaltyRewardsRedemtionRepo.findOne({
+      where: { id },
+    });
+
+    if (!redemption) {
+      ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARDS_REDEMPTION_NOT_FOUND);
+    }
+
+    Object.assign(redemption, updateLoyaltyRewardsRedemtionDto);
+
+    try {
+      await this.loyaltyRewardsRedemtionRepo.save(redemption);
+      return this.findOne(id, 'Updated');
+    } catch (error) {
+      ErrorHandler.handleDatabaseError(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} loyaltyRewardsRedemtion`;
+  async remove(id: number): Promise<OneLoyaltyRewardsRedemtionResponse> {
+    if (!id || id <= 0) {
+      ErrorHandler.invalidId('Redemption ID is incorrect');
+    }
+
+    const redemption = await this.loyaltyRewardsRedemtionRepo.findOne({
+      where: { id },
+      relations: ['loyaltyCustomer', 'reward', 'order']
+    });
+
+    if (!redemption) {
+      ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARDS_REDEMPTION_NOT_FOUND);
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Refund points
+      const loyaltyCustomer = await this.loyaltyCustomerRepo.findOneBy({ id: redemption.loyaltyCustomerId });
+      if (loyaltyCustomer) {
+        loyaltyCustomer.currentPoints += redemption.redeemedPoints;
+        await queryRunner.manager.save(loyaltyCustomer);
+
+        // Transaction log for refund
+        const pointTransaction = queryRunner.manager.create(LoyaltyPointTransaction, {
+          loyaltyCustomer,
+          order: redemption.order, // or null
+          source: LoyaltyPointsSource.MANUAL_ADJUST, // or make a new enum REFUND
+          points: redemption.redeemedPoints,
+          description: `Refund for redemption ${id}`,
+        });
+        await queryRunner.manager.save(pointTransaction);
+      }
+
+      await queryRunner.manager.remove(redemption);
+      await queryRunner.commitTransaction();
+
+      // We can't return the standard findOne because it's deleted. 
+      // We return the captured state or a generic success message.
+      // But adhering to the interface contract of returning OneLoyaltyRewardsRedemtionResponse:
+
+      const dataForResponse: LoyaltyRewardsRedemtionResponseDto = {
+        id: redemption.id,
+        loyaltyCustomer: redemption.loyaltyCustomer ? {
+          id: redemption.loyaltyCustomer.id,
+          current_points: loyaltyCustomer ? loyaltyCustomer.currentPoints : 0,
+          lifetime_points: loyaltyCustomer ? loyaltyCustomer.lifetimePoints : 0,
+        } : null,
+        reward: redemption.reward ? {
+          id: redemption.reward.id,
+          name: redemption.reward.name,
+          description: redemption.reward.description,
+          cost_points: redemption.reward.costPoints,
+        } : null,
+        order: redemption.order ? {
+          id: redemption.order.id,
+          businessStatus: redemption.order.status,
+        } : null,
+        redeemed_points: redemption.redeemedPoints,
+        redeemed_at: redemption.redeemedAt,
+      };
+
+      return {
+        statusCode: 200,
+        message: `Redemption Deleted successfully and points refunded`,
+        data: dataForResponse,
+      };
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      ErrorHandler.handleDatabaseError(error);
+    } finally {
+      await queryRunner.release();
+    }
   }
 }
