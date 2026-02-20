@@ -107,6 +107,8 @@ import { QRMenuItem } from './qr-code/qr-menu-item/entity/qr-menu-item.entity';
 import { QRMenuItemModule } from './qr-code/qr-menu-item/qr-menu-item.module';
 import { QRLocation } from './qr-code/qr-location/entity/qr-location.entity';
 import { QRLocationModule } from './qr-code/qr-location/qr-location.module';
+import { QrOrderModule } from './qr-code/qr-order/qr-order.module';
+import { QROrder } from './qr-code/qr-order/entity/qr-order.entity';
 import { KitchenOrderItemModule } from './kitchen-display-system/kitchen-order-item/kitchen-order-item.module';
 import { KitchenOrderItem } from './kitchen-display-system/kitchen-order-item/entities/kitchen-order-item.entity';
 import { KitchenEventLogModule } from './kitchen-display-system/kitchen-event-log/kitchen-event-log.module';
@@ -215,6 +217,7 @@ import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.
           OnlineDeliveryInfo,
           OnlinePayment,
           QRLocation,
+          QROrder,
           MarketingCampaign,
           MarketingCampaignAudience,
           MarketingSegment,
@@ -291,6 +294,7 @@ import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.
     QRMenuSectionModule,
     QRMenuItemModule,
     QRLocationModule,
+    QrOrderModule,
     KitchenOrderItemModule,
     KitchenEventLogModule,
     MarketingCampaignModule,
