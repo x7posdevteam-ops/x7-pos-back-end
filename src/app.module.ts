@@ -139,6 +139,8 @@ import { TipPoolsModule } from './tips/tip-pools/tip-pools.module';
 import { TipPool } from './tips/tip-pools/entities/tip-pool.entity';
 import { TipPoolMembersModule } from './tips/tip-pool-members/tip-pool-members.module';
 import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.entity';
+import { QROrderItemModule } from './qr-code/qr-order-item/qr-order-item.module';
+import { QROrderItem } from './qr-code/qr-order-item/entity/qr-order-item.entity';
 import { LoyaltyRewardsRedemtion } from './loyalty/loyalty-rewards-redemtions/entities/loyalty-rewards-redemtion.entity';
 import { LoyaltyCoupon } from './loyalty/loyalty-coupons/entities/loyalty-coupon.entity';
 
@@ -222,6 +224,7 @@ import { LoyaltyCoupon } from './loyalty/loyalty-coupons/entities/loyalty-coupon
           OnlinePayment,
           QRLocation,
           QROrder,
+          QROrderItem,
           MarketingCampaign,
           MarketingCampaignAudience,
           MarketingSegment,
@@ -314,6 +317,7 @@ import { LoyaltyCoupon } from './loyalty/loyalty-coupons/entities/loyalty-coupon
     TipAllocationsModule,
     TipPoolsModule,
     TipPoolMembersModule,
+    QROrderItemModule,
   ],
 })
 export class AppModule {}
