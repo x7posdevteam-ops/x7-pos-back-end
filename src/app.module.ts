@@ -139,6 +139,8 @@ import { TipPoolsModule } from './tips/tip-pools/tip-pools.module';
 import { TipPool } from './tips/tip-pools/entities/tip-pool.entity';
 import { TipPoolMembersModule } from './tips/tip-pool-members/tip-pool-members.module';
 import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.entity';
+import { QROrderItemModule } from './qr-code/qr-order-item/qr-order-item.module';
+import { QROrderItem } from './qr-code/qr-order-item/entity/qr-order-item.entity';
 
 @Module({
   imports: [
@@ -218,6 +220,7 @@ import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.
           OnlinePayment,
           QRLocation,
           QROrder,
+          QROrderItem,
           MarketingCampaign,
           MarketingCampaignAudience,
           MarketingSegment,
@@ -310,6 +313,7 @@ import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.
     TipAllocationsModule,
     TipPoolsModule,
     TipPoolMembersModule,
+    QROrderItemModule,
   ],
 })
 export class AppModule {}
