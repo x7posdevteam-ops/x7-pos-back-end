@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, Min } from 'class-validator';
+import { IsInt, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateLoyaltyRewardsRedemtionDto {
@@ -29,14 +29,5 @@ export class CreateLoyaltyRewardsRedemtionDto {
     @IsNotEmpty()
     @Type(() => Number)
     order_id: number;
-
-    @ApiProperty({
-        example: 100,
-        description: 'Points redeemed for this reward',
-    })
-    @IsInt()
-    @Min(0)
-    @IsNotEmpty()
-    @Type(() => Number)
-    redeemed_points: number;
 }
+

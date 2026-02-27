@@ -9,6 +9,7 @@ import { Collaborator } from '../collaborators/entities/collaborator.entity';
 import { MerchantSubscription } from '../subscriptions/merchant-subscriptions/entities/merchant-subscription.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { LoyaltyRewardsRedemtion } from 'src/loyalty/loyalty-rewards-redemtions/entities/loyalty-rewards-redemtion.entity';
+import { LoyaltyCoupon } from 'src/loyalty/loyalty-coupons/entities/loyalty-coupon.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LoyaltyRewardsRedemtion } from 'src/loyalty/loyalty-rewards-redemtions/
       MerchantSubscription,
       Customer,
       LoyaltyRewardsRedemtion,
+      LoyaltyCoupon,
     ]),
   ],
   controllers: [OrdersController],

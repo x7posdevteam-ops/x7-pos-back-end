@@ -65,5 +65,8 @@ export class LoyaltyRewardsRedemtion {
     })
     @Column({ name: 'redeemed_at', type: 'timestamp' })
     redeemedAt: Date;
+
+    @Column({ default: true })
+    is_active: boolean;
 }
 

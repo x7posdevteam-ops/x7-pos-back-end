@@ -74,7 +74,6 @@ describe('LoyaltyRewardsRedemtionsController', () => {
         loyalty_customer_id: 1,
         reward_id: 1,
         order_id: 101,
-        redeemed_points: 50,
       };
 
       mockLoyaltyRewardsRedemtionsService.create.mockResolvedValue(mockOneResponse);
@@ -90,7 +89,6 @@ describe('LoyaltyRewardsRedemtionsController', () => {
         loyalty_customer_id: 1,
         reward_id: 1,
         order_id: 101,
-        redeemed_points: 50,
       };
       mockLoyaltyRewardsRedemtionsService.create.mockRejectedValue(new Error('Service Error'));
 
@@ -150,7 +148,7 @@ describe('LoyaltyRewardsRedemtionsController', () => {
 
   describe('update', () => {
     const id = 1;
-    const dto: UpdateLoyaltyRewardsRedemtionDto = { redeemed_points: 60 };
+    const dto: UpdateLoyaltyRewardsRedemtionDto = { reward_id: 2 };
 
     it('should update a redemption', async () => {
       mockLoyaltyRewardsRedemtionsService.update.mockResolvedValue(mockOneResponse);
@@ -190,14 +188,14 @@ describe('LoyaltyRewardsRedemtionsController', () => {
   describe('Service Integration', () => {
     it('should call service methods with correct parameters', async () => {
       const id = 1;
+      const updateDto: UpdateLoyaltyRewardsRedemtionDto = { reward_id: 2 };
+      const query: GetLoyaltyRewardsRedemtionsQueryDto = { page: 1, limit: 10 };
+
       const createDto: CreateLoyaltyRewardsRedemtionDto = {
         loyalty_customer_id: 1,
         reward_id: 1,
         order_id: 101,
-        redeemed_points: 50,
       };
-      const updateDto: UpdateLoyaltyRewardsRedemtionDto = { redeemed_points: 60 };
-      const query: GetLoyaltyRewardsRedemtionsQueryDto = { page: 1, limit: 10 };
 
       mockLoyaltyRewardsRedemtionsService.create.mockResolvedValue({});
       mockLoyaltyRewardsRedemtionsService.findAll.mockResolvedValue({});

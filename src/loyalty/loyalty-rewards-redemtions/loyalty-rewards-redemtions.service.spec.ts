@@ -152,7 +152,6 @@ describe('LoyaltyRewardsRedemtionsService', () => {
       loyalty_customer_id: 1,
       reward_id: 1,
       order_id: 101,
-      redeemed_points: 50,
     };
 
     it('should create a redemption successfully', async () => {
@@ -165,6 +164,8 @@ describe('LoyaltyRewardsRedemtionsService', () => {
       loyaltyRewardRepo.findOne.mockResolvedValue(reward as any);
       orderRepo.findOneBy.mockResolvedValue(order as any);
 
+      // manager.findOne para check de duplicados
+      mockQueryRunner.manager.findOne = jest.fn().mockResolvedValue(null);
       mockQueryRunner.manager.create.mockReturnValue(newRedemption);
       mockQueryRunner.manager.save.mockResolvedValue(newRedemption);
 
@@ -201,6 +202,7 @@ describe('LoyaltyRewardsRedemtionsService', () => {
       const customer = getMockLoyaltyCustomer();
       customer.currentPoints = 10; // Less than 50
       loyaltyCustomerRepo.findOne.mockResolvedValue(customer as any);
+      loyaltyRewardRepo.findOne.mockResolvedValue(getMockReward() as any);
 
       await expect(service.create(merchantId, createDto)).rejects.toThrow('Insufficient loyalty points');
     });
@@ -260,9 +262,9 @@ describe('LoyaltyRewardsRedemtionsService', () => {
 
       await service.findAll({ min_redeemed_points: 10, max_redeemed_points: 100 }, merchantId);
 
-      // 1 for merchantId (where), 2 for points range (andWhere)
+      // 1 (is_active base) + 2 de points range = 3 andWhere en total
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('program.merchantId = :merchantId', { merchantId });
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(2);
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -289,12 +291,13 @@ describe('LoyaltyRewardsRedemtionsService', () => {
   });
 
   describe('update', () => {
-    const updateDto = { redeemed_points: 60 };
+    const updateDto = { order_id: 202 };
 
     it('should update redemption successfully verifying merchant check', async () => {
       const redemption = getMockRedemption();
       mockQueryBuilder.getOne.mockResolvedValue(redemption as any);
       loyaltyRewardsRedemtionRepo.save.mockResolvedValue(redemption as any);
+      orderRepo.findOneBy.mockResolvedValue(getMockOrder() as any);
 
       jest.spyOn(service, 'findOne').mockResolvedValue({
         statusCode: 200,
@@ -353,6 +356,8 @@ describe('LoyaltyRewardsRedemtionsService', () => {
 
       mockQueryBuilder.getOne.mockResolvedValue(redemption as any);
       loyaltyCustomerRepo.findOneBy.mockResolvedValue(customer as any);
+      mockQueryRunner.manager.save.mockResolvedValue({});
+      mockQueryRunner.manager.create.mockReturnValue({});
 
       const result = await service.remove(1, merchantId);
 
@@ -360,7 +365,7 @@ describe('LoyaltyRewardsRedemtionsService', () => {
       expect(customer.currentPoints).toBe(150); // 100 + 50 (refund)
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('redemption.id = :id', { id: 1 });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('program.merchantId = :merchantId', { merchantId });
-      expect(mockQueryRunner.manager.remove).toHaveBeenCalledWith(redemption);
+      expect(mockQueryRunner.manager.save).toHaveBeenCalled();
       expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
     });
 
@@ -371,8 +376,11 @@ describe('LoyaltyRewardsRedemtionsService', () => {
 
     it('should rollback on error during remove', async () => {
       const redemption = getMockRedemption();
+      const customer = getMockLoyaltyCustomer();
       mockQueryBuilder.getOne.mockResolvedValue(redemption as any);
-      mockQueryRunner.manager.remove.mockRejectedValue(new Error('DB Error'));
+      loyaltyCustomerRepo.findOneBy.mockResolvedValue(customer as any);
+      // El service falla en manager.save (baja lógica)
+      mockQueryRunner.manager.save.mockRejectedValue(new Error('DB Error'));
 
       await expect(service.remove(1, merchantId)).rejects.toThrow();
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();

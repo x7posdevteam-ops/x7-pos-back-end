@@ -6,6 +6,7 @@ import { UpdateLoyaltyCouponDto } from './dto/update-loyalty-coupon.dto';
 import { LoyaltyCoupon } from './entities/loyalty-coupon.entity';
 import { LoyaltyCustomer } from '../loyalty-customer/entities/loyalty-customer.entity';
 import { LoyaltyReward } from '../loyalty-reward/entities/loyalty-reward.entity';
+import { Order } from '../../orders/entities/order.entity';
 import { GetLoyaltyCouponsQueryDto } from './dto/get-loyalty-coupons-query.dto';
 import {
   LoyaltyCouponResponseDto,
@@ -69,17 +70,51 @@ export class LoyaltyCouponsService {
       ErrorHandler.badRequest('Customer and Reward must belong to the same Loyalty Program');
     }
 
+    // discount_value: usa el del DTO si viene, sino deriva del reward
+    const resolvedDiscountValue: number =
+      couponData.discount_value != null
+        ? couponData.discount_value
+        : Number(reward.discountValue ?? reward.cashbackValue ?? 0);
+
+    // Check existence BEFORE starting transaction to avoid catching business errors as DB errors
+    const existingActive = await this.loyaltyCouponRepo.findOne({
+      where: { code: createLoyaltyCouponDto.code, is_active: true },
+    });
+
+    if (existingActive) {
+      ErrorHandler.exists('A coupon with this code already exists');
+    }
+
+    const existingInactive = await this.loyaltyCouponRepo.findOne({
+      where: { code: createLoyaltyCouponDto.code, is_active: false },
+    });
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      if (existingInactive) {
+        existingInactive.is_active = true;
+        existingInactive.status = couponData.status ?? LoyaltyCouponStatus.ACTIVE;
+        existingInactive.loyaltyCustomerId = loyalty_customer_id;
+        existingInactive.rewardId = reward_id;
+        existingInactive.discountValue = resolvedDiscountValue;
+        existingInactive.expiresAt = new Date(couponData.expires_at);
+        await queryRunner.manager.save(existingInactive);
+        await queryRunner.commitTransaction();
+        return this.findOne(existingInactive.id, merchantId, 'Created');
+      }
+
       const newCoupon = queryRunner.manager.create(LoyaltyCoupon, {
         loyaltyCustomer,
         reward,
         loyaltyCustomerId: loyalty_customer_id,
         rewardId: reward_id,
-        ...couponData,
+        code: couponData.code,
+        status: couponData.status ?? LoyaltyCouponStatus.ACTIVE,
+        discountValue: resolvedDiscountValue,
+        expiresAt: new Date(couponData.expires_at),
       });
 
       const savedCoupon = await queryRunner.manager.save(newCoupon);
@@ -95,6 +130,9 @@ export class LoyaltyCouponsService {
     }
   }
 
+
+
+
   async findAll(
     query: GetLoyaltyCouponsQueryDto,
     merchantId: number,
@@ -108,7 +146,8 @@ export class LoyaltyCouponsService {
       .leftJoinAndSelect('coupon.loyaltyCustomer', 'loyaltyCustomer')
       .leftJoinAndSelect('loyaltyCustomer.loyaltyProgram', 'program')
       .leftJoinAndSelect('coupon.reward', 'reward')
-      .where('program.merchantId = :merchantId', { merchantId });
+      .where('program.merchantId = :merchantId', { merchantId })
+      .andWhere('coupon.is_active = :isActive', { isActive: true });
 
     if (query.status) {
       queryBuilder.andWhere('coupon.status = :status', {
@@ -211,7 +250,8 @@ export class LoyaltyCouponsService {
       .leftJoinAndSelect('loyaltyCustomer.loyaltyProgram', 'program')
       .leftJoinAndSelect('coupon.reward', 'reward')
       .where('coupon.id = :id', { id })
-      .andWhere('program.merchantId = :merchantId', { merchantId });
+      .andWhere('program.merchantId = :merchantId', { merchantId })
+      .andWhere('coupon.is_active = :isActive', { isActive: true });
 
     const coupon = await queryBuilder.getOne();
 
@@ -288,17 +328,13 @@ export class LoyaltyCouponsService {
       ErrorHandler.invalidId('Coupon ID is incorrect');
     }
 
-    // Retrieve coupon ensuring it belongs to the merchant via customer->program->merchant
-    // We can use findOne internally but it throws specific error, maybe reuse querybuilder to check ownership first
-    // Or just fetch with relations and verify manually to return specific error if needed.
-    // Using FindOne logic (query builder with merchant filter) is safer.
-
     const queryBuilder = this.loyaltyCouponRepo
       .createQueryBuilder('coupon')
       .leftJoinAndSelect('coupon.loyaltyCustomer', 'loyaltyCustomer')
       .leftJoinAndSelect('loyaltyCustomer.loyaltyProgram', 'program')
       .where('coupon.id = :id', { id })
-      .andWhere('program.merchantId = :merchantId', { merchantId });
+      .andWhere('program.merchantId = :merchantId', { merchantId })
+      .andWhere('coupon.is_active = :isActive', { isActive: true });
 
     const coupon = await queryBuilder.getOne();
 
@@ -306,33 +342,17 @@ export class LoyaltyCouponsService {
       ErrorHandler.notFound(ErrorMessage.RESOURCE_NOT_FOUND);
     }
 
-    const { loyalty_customer_id, reward_id, ...updateData } = updateLoyaltyCouponDto;
+    const { loyalty_customer_id, reward_id, order_id, status, expires_at, code, discount_value } = updateLoyaltyCouponDto;
 
     if (loyalty_customer_id) {
       const customer = await this.loyaltyCustomerRepo.findOne({
         where: { id: loyalty_customer_id },
         relations: ['loyaltyProgram'],
       });
-      if (!customer) {
-        ErrorHandler.notFound(ErrorMessage.LOYALTY_CUSTOMER_NOT_FOUND);
-      }
+      if (!customer) ErrorHandler.notFound(ErrorMessage.LOYALTY_CUSTOMER_NOT_FOUND);
       if (Number(customer.loyaltyProgram.merchantId) !== Number(merchantId)) {
         ErrorHandler.notFound(ErrorMessage.LOYALTY_CUSTOMER_NOT_FOUND);
       }
-
-      // If changing customer, verify it matches the current coupon's reward program unless reward is also changing
-      // But reward also needs to be checked against new customer program.
-      // For simplicity, if changing customer, we should probably re-verify program consistency.
-      if (reward_id) {
-        // both changing
-        // will be checked in reward block
-      } else {
-        // only customer changing, check against existing reward
-        // But we don't have existing reward loaded fully (only id on coupon).
-        // Let's assume user is responsible or we can fetch.
-        // Given the complexity, let's just update relation.
-      }
-
       coupon.loyaltyCustomer = customer;
       coupon.loyaltyCustomerId = loyalty_customer_id;
     }
@@ -342,18 +362,33 @@ export class LoyaltyCouponsService {
         where: { id: reward_id },
         relations: ['loyaltyProgram'],
       });
-      if (!reward) {
-        ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARD_NOT_FOUND);
-      }
+      if (!reward) ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARD_NOT_FOUND);
       if (Number(reward.loyaltyProgram.merchantId) !== Number(merchantId)) {
         ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARD_NOT_FOUND);
       }
-
       coupon.reward = reward;
       coupon.rewardId = reward_id;
     }
 
-    Object.assign(coupon, updateData);
+    // Handle REDEEMED: require order_id and set redeemed_at
+    if (status === LoyaltyCouponStatus.REDEEMED) {
+      if (!order_id) {
+        ErrorHandler.badRequest('order_id is required when marking a coupon as REDEEMED');
+      }
+      const orderRepo = this.dataSource.getRepository(Order);
+      const order = await orderRepo.findOne({ where: { id: order_id } });
+      if (!order) {
+        ErrorHandler.notFound('Order not found');
+      }
+      coupon.orderId = order_id;
+      coupon.redeemedAt = new Date();
+    }
+
+    // Map DTO fields to entity (camelCase)
+    if (status !== undefined) coupon.status = status;
+    if (expires_at !== undefined) coupon.expiresAt = new Date(expires_at);
+    if (code !== undefined) coupon.code = code;
+    if (discount_value !== undefined) coupon.discountValue = discount_value;
 
     try {
       await this.loyaltyCouponRepo.save(coupon);
@@ -383,7 +418,9 @@ export class LoyaltyCouponsService {
     }
 
     try {
-      await this.loyaltyCouponRepo.remove(coupon);
+      // Logical delete
+      coupon.is_active = false;
+      await this.loyaltyCouponRepo.save(coupon);
 
       const dataForResponse: LoyaltyCouponResponseDto = {
         id: coupon.id,

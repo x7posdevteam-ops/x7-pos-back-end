@@ -67,9 +67,11 @@ describe('LoyaltyCouponsService', () => {
 
   let mockQueryBuilder: ReturnType<typeof getMockQueryBuilder>;
   let mockQueryRunner: any;
+  let mockOrderRepo: { findOne: jest.Mock };
 
   beforeEach(async () => {
     mockQueryBuilder = getMockQueryBuilder();
+    mockOrderRepo = { findOne: jest.fn() };
 
     mockQueryRunner = {
       connect: jest.fn(),
@@ -113,6 +115,7 @@ describe('LoyaltyCouponsService', () => {
           provide: DataSource,
           useValue: {
             createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+            getRepository: jest.fn().mockReturnValue(mockOrderRepo),
           },
         },
       ],
@@ -127,6 +130,7 @@ describe('LoyaltyCouponsService', () => {
     jest.clearAllMocks();
     loyaltyCouponRepo.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
     dataSource.createQueryRunner.mockReturnValue(mockQueryRunner);
+    (dataSource.getRepository as jest.Mock).mockReturnValue(mockOrderRepo);
   });
 
   it('should be defined', () => {
@@ -140,7 +144,7 @@ describe('LoyaltyCouponsService', () => {
       code: 'TESTCODE123',
       status: LoyaltyCouponStatus.ACTIVE,
       discount_value: 10,
-      expires_at: new Date(),
+      expires_at: new Date().toISOString(),
     };
 
     it('should create a coupon successfully', async () => {
@@ -270,12 +274,13 @@ describe('LoyaltyCouponsService', () => {
   });
 
   describe('update', () => {
-    const updateDto = { status: LoyaltyCouponStatus.REDEEMED };
+    const updateDto = { status: LoyaltyCouponStatus.REDEEMED, order_id: 10 };
 
     it('should update coupon successfully verifying merchant check', async () => {
       const coupon = getMockCoupon();
       mockQueryBuilder.getOne.mockResolvedValue(coupon as any);
       loyaltyCouponRepo.save.mockResolvedValue(coupon as any);
+      mockOrderRepo.findOne.mockResolvedValue({ id: 10 });
 
       jest.spyOn(service, 'findOne').mockResolvedValue({
         statusCode: 200,
@@ -335,7 +340,7 @@ describe('LoyaltyCouponsService', () => {
       expect(result.statusCode).toBe(200);
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('coupon.id = :id', { id: 1 });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('program.merchantId = :merchantId', { merchantId });
-      expect(loyaltyCouponRepo.remove).toHaveBeenCalledWith(coupon);
+      expect(loyaltyCouponRepo.save).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if coupon not found (e.g. wrong merchant)', async () => {

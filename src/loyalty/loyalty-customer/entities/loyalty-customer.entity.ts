@@ -28,7 +28,7 @@ export class LoyaltyCustomer {
     example: 1,
     description: 'ID of the loyalty program',
   })
-  @Column({ type: 'bigint', name: 'loyalty_program_id' })
+  @Column({ type: 'int', name: 'loyalty_program_id' })
   loyaltyProgramId: number;
 
   @ManyToOne(() => LoyaltyProgram)
@@ -39,7 +39,7 @@ export class LoyaltyCustomer {
     example: 1,
     description: 'ID of the customer',
   })
-  @Column({ type: 'bigint', name: 'customer_id' })
+  @Column({ type: 'int', name: 'customer_id' })
   customerId: number;
 
   @ManyToOne(() => Customer)
@@ -65,7 +65,7 @@ export class LoyaltyCustomer {
     description: 'ID of the loyalty tier the customer belongs to',
     nullable: true,
   })
-  @Column({ type: 'bigint', name: 'loyalty_tier_id', nullable: true })
+  @Column({ type: 'int', name: 'loyalty_tier_id', nullable: true })
   loyaltyTierId: number;
 
   @ManyToOne(() => LoyaltyTier)

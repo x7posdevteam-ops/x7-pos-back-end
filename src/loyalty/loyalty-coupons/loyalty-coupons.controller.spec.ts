@@ -8,7 +8,6 @@ import { AuthenticatedUser } from '../../auth/interfaces/authenticated-user.inte
 import { UserRole } from '../../users/constants/role.enum';
 import { Scope } from '../../users/constants/scope.enum';
 import { LoyaltyCouponStatus } from './constants/loyalty-coupons-status.enum';
-import { AllPaginatedLoyaltyCouponsDto } from './dto/all-paginated-loyalty-coupons.dto';
 
 describe('LoyaltyCouponsController', () => {
   let controller: LoyaltyCouponsController;
@@ -20,6 +19,15 @@ describe('LoyaltyCouponsController', () => {
     findOne: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+  };
+
+  const createDto: CreateLoyaltyCouponDto = {
+    loyalty_customer_id: 1,
+    code: 'TESTCODE123',
+    reward_id: 1,
+    status: LoyaltyCouponStatus.ACTIVE,
+    discount_value: 10,
+    expires_at: new Date().toISOString(),
   };
 
   beforeEach(async () => {
@@ -45,79 +53,18 @@ describe('LoyaltyCouponsController', () => {
     jest.clearAllMocks();
   });
 
+  // ─── Controller Initialization ────────────────────────────────────────────
+
   describe('Controller Initialization', () => {
     it('should be defined', () => {
       expect(controller).toBeDefined();
     });
   });
 
-  describe('FindAll', () => {
-    it('should return a paginated list of loyalty coupons', async () => {
-      const query: GetLoyaltyCouponsQueryDto = { page: 1, limit: 10 };
-      const expectedResult: AllPaginatedLoyaltyCouponsDto = {
-        statusCode: 200,
-        message: 'Success',
-        data: [],
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
-        hasNext: false,
-        hasPrev: false,
-      };
+  // ─── create ────────────────────────────────────────────────────────────────
 
-      mockLoyaltyCouponsService.findAll.mockResolvedValue(expectedResult);
-
-      const result = await controller.findAll(user, query);
-
-      expect(result).toEqual(expectedResult);
-      expect(mockLoyaltyCouponsService.findAll).toHaveBeenCalledWith(query, user.merchant.id);
-    });
-
-    it('should handle service errors when finding all coupons', async () => {
-      const query: GetLoyaltyCouponsQueryDto = { page: 1, limit: 10 };
-      mockLoyaltyCouponsService.findAll.mockRejectedValue(new Error('Service Error'));
-
-      await expect(controller.findAll(user, query)).rejects.toThrow('Service Error');
-    });
-  });
-
-  describe('FindOne', () => {
-    it('should return a single loyalty coupon', async () => {
-      const id = 1;
-      const expectedResult = {
-        statusCode: 200,
-        message: 'Success',
-        data: { id: 1, code: 'TESCODE' },
-      };
-
-      mockLoyaltyCouponsService.findOne.mockResolvedValue(expectedResult);
-
-      const result = await controller.findOne(user, id);
-
-      expect(result).toEqual(expectedResult);
-      expect(mockLoyaltyCouponsService.findOne).toHaveBeenCalledWith(id, user.merchant.id);
-    });
-
-    it('should handle coupon not found', async () => {
-      const id = 999;
-      mockLoyaltyCouponsService.findOne.mockRejectedValue(new Error('Not Found'));
-
-      await expect(controller.findOne(user, id)).rejects.toThrow('Not Found');
-    });
-  });
-
-  describe('Create', () => {
-    it('should create a loyalty coupon', async () => {
-      const createDto: CreateLoyaltyCouponDto = {
-        loyalty_customer_id: 1,
-        code: 'TESTCODE123',
-        reward_id: 1,
-        status: LoyaltyCouponStatus.ACTIVE,
-        discount_value: 10,
-        expires_at: new Date(),
-      };
-
+  describe('create', () => {
+    it('debería crear un cupón y retornar el resultado del servicio', async () => {
       const expectedResult = {
         statusCode: 201,
         message: 'Loyalty Coupon created successfully',
@@ -129,18 +76,122 @@ describe('LoyaltyCouponsController', () => {
       const result = await controller.create(user, createDto);
 
       expect(result).toEqual(expectedResult);
-      expect(mockLoyaltyCouponsService.create).toHaveBeenCalledWith(user.merchant.id, createDto);
+      expect(mockLoyaltyCouponsService.create).toHaveBeenCalledWith(
+        user.merchant.id,
+        createDto,
+      );
+    });
+
+    it('debería propagar el error del servicio al crear un cupón', async () => {
+      mockLoyaltyCouponsService.create.mockRejectedValue(
+        new Error('Conflict: coupon already exists'),
+      );
+
+      await expect(controller.create(user, createDto)).rejects.toThrow(
+        'Conflict: coupon already exists',
+      );
+      expect(mockLoyaltyCouponsService.create).toHaveBeenCalledWith(
+        user.merchant.id,
+        createDto,
+      );
     });
   });
 
-  describe('Update', () => {
-    it('should update a loyalty coupon', async () => {
+  // ─── findAll ───────────────────────────────────────────────────────────────
+
+  describe('findAll', () => {
+    it('debería retornar la lista paginada de cupones', async () => {
+      const query: GetLoyaltyCouponsQueryDto = { page: 1, limit: 10 };
+      const expectedResult = {
+        statusCode: 200,
+        message: 'Success',
+        data: [{ id: 1 }, { id: 2 }],
+        page: 1,
+        limit: 10,
+        total: 2,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      };
+
+      mockLoyaltyCouponsService.findAll.mockResolvedValue(expectedResult);
+
+      const result = await controller.findAll(user, query);
+
+      expect(result).toEqual(expectedResult);
+      expect(mockLoyaltyCouponsService.findAll).toHaveBeenCalledWith(
+        query,
+        user.merchant.id,
+      );
+    });
+
+    it('debería propagar el error del servicio al obtener la lista de cupones', async () => {
+      const query: GetLoyaltyCouponsQueryDto = { page: 1, limit: 10 };
+      mockLoyaltyCouponsService.findAll.mockRejectedValue(
+        new Error('Internal Server Error'),
+      );
+
+      await expect(controller.findAll(user, query)).rejects.toThrow(
+        'Internal Server Error',
+      );
+      expect(mockLoyaltyCouponsService.findAll).toHaveBeenCalledWith(
+        query,
+        user.merchant.id,
+      );
+    });
+  });
+
+  // ─── findOne ───────────────────────────────────────────────────────────────
+
+  describe('findOne', () => {
+    it('debería retornar un cupón por su ID', async () => {
       const id = 1;
-      const updateDto: UpdateLoyaltyCouponDto = { status: LoyaltyCouponStatus.REDEEMED };
+      const expectedResult = {
+        statusCode: 200,
+        message: 'Success',
+        data: { id, code: 'TESTCODE123', status: LoyaltyCouponStatus.ACTIVE },
+      };
+
+      mockLoyaltyCouponsService.findOne.mockResolvedValue(expectedResult);
+
+      const result = await controller.findOne(user, id);
+
+      expect(result).toEqual(expectedResult);
+      expect(mockLoyaltyCouponsService.findOne).toHaveBeenCalledWith(
+        id,
+        user.merchant.id,
+      );
+    });
+
+    it('debería propagar el error cuando el cupón no existe', async () => {
+      const id = 999;
+      mockLoyaltyCouponsService.findOne.mockRejectedValue(
+        new Error('Loyalty Coupon not found'),
+      );
+
+      await expect(controller.findOne(user, id)).rejects.toThrow(
+        'Loyalty Coupon not found',
+      );
+      expect(mockLoyaltyCouponsService.findOne).toHaveBeenCalledWith(
+        id,
+        user.merchant.id,
+      );
+    });
+  });
+
+  // ─── update ────────────────────────────────────────────────────────────────
+
+  describe('update', () => {
+    it('debería actualizar el status de un cupón', async () => {
+      const id = 1;
+      const updateDto: UpdateLoyaltyCouponDto = {
+        status: LoyaltyCouponStatus.REDEEMED,
+        order_id: 42,
+      };
       const expectedResult = {
         statusCode: 200,
         message: 'Loyalty Coupon updated successfully',
-        data: { id: 1, status: LoyaltyCouponStatus.REDEEMED },
+        data: { id, status: LoyaltyCouponStatus.REDEEMED, order_id: 42 },
       };
 
       mockLoyaltyCouponsService.update.mockResolvedValue(expectedResult);
@@ -148,17 +199,42 @@ describe('LoyaltyCouponsController', () => {
       const result = await controller.update(user, id, updateDto);
 
       expect(result).toEqual(expectedResult);
-      expect(mockLoyaltyCouponsService.update).toHaveBeenCalledWith(id, user.merchant.id, updateDto);
+      expect(mockLoyaltyCouponsService.update).toHaveBeenCalledWith(
+        id,
+        user.merchant.id,
+        updateDto,
+      );
+    });
+
+    it('debería propagar el error cuando el cupón a actualizar no existe', async () => {
+      const id = 999;
+      const updateDto: UpdateLoyaltyCouponDto = {
+        status: LoyaltyCouponStatus.CANCELLED,
+      };
+      mockLoyaltyCouponsService.update.mockRejectedValue(
+        new Error('Loyalty Coupon not found'),
+      );
+
+      await expect(controller.update(user, id, updateDto)).rejects.toThrow(
+        'Loyalty Coupon not found',
+      );
+      expect(mockLoyaltyCouponsService.update).toHaveBeenCalledWith(
+        id,
+        user.merchant.id,
+        updateDto,
+      );
     });
   });
 
-  describe('Remove', () => {
-    it('should remove a loyalty coupon', async () => {
+  // ─── remove ────────────────────────────────────────────────────────────────
+
+  describe('remove', () => {
+    it('debería eliminar (baja lógica) un cupón por su ID', async () => {
       const id = 1;
       const expectedResult = {
         statusCode: 200,
         message: 'Loyalty Coupon deleted successfully',
-        data: { id: 1 },
+        data: { id },
       };
 
       mockLoyaltyCouponsService.remove.mockResolvedValue(expectedResult);
@@ -166,23 +242,35 @@ describe('LoyaltyCouponsController', () => {
       const result = await controller.remove(user, id);
 
       expect(result).toEqual(expectedResult);
-      expect(mockLoyaltyCouponsService.remove).toHaveBeenCalledWith(id, user.merchant.id);
+      expect(mockLoyaltyCouponsService.remove).toHaveBeenCalledWith(
+        id,
+        user.merchant.id,
+      );
+    });
+
+    it('debería propagar el error cuando el cupón a eliminar no existe', async () => {
+      const id = 999;
+      mockLoyaltyCouponsService.remove.mockRejectedValue(
+        new Error('Loyalty Coupon not found'),
+      );
+
+      await expect(controller.remove(user, id)).rejects.toThrow(
+        'Loyalty Coupon not found',
+      );
+      expect(mockLoyaltyCouponsService.remove).toHaveBeenCalledWith(
+        id,
+        user.merchant.id,
+      );
     });
   });
 
+  // ─── Service Integration ───────────────────────────────────────────────────
+
   describe('Service Integration', () => {
-    it('should call service methods with correct parameters', async () => {
-      const createDto: CreateLoyaltyCouponDto = {
-        loyalty_customer_id: 1,
-        code: 'TESTCODE123',
-        reward_id: 1,
-        status: LoyaltyCouponStatus.ACTIVE,
-        discount_value: 10,
-        expires_at: new Date(),
-      };
+    it('debería llamar a todos los métodos del servicio con los parámetros correctos', async () => {
+      const query: GetLoyaltyCouponsQueryDto = { page: 1, limit: 10 };
       const updateDto: UpdateLoyaltyCouponDto = { status: LoyaltyCouponStatus.REDEEMED };
       const id = 1;
-      const query: GetLoyaltyCouponsQueryDto = { page: 1, limit: 10 };
 
       mockLoyaltyCouponsService.create.mockResolvedValue({});
       mockLoyaltyCouponsService.findAll.mockResolvedValue({});

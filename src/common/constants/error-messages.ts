@@ -83,6 +83,7 @@ export enum ErrorMessage {
   LOYALTY_PROGRAM_NAME_EXISTS = 'Loyalty Program name already exists',
   LOYALTY_TIER_NAME_EXISTS = 'Loyalty Tier name already exists',
   LOYALTY_CUSTOMER_EXISTS = 'Loyalty Customer already exists',
+  LOYALTY_CUSTOMER_ALREADY_IN_PROGRAM = 'Customer is already enrolled in a loyalty program',
   LOYALTY_POINTS_TRANSACTION_EXISTS = 'Loyalty Points Transaction already exists',
   LOYALTY_REWARD_EXISTS = 'Loyalty Reward already exists',
 

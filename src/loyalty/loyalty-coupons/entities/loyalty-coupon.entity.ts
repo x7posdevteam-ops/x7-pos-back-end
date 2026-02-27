@@ -10,6 +10,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { LoyaltyCustomer } from '../../loyalty-customer/entities/loyalty-customer.entity';
 import { LoyaltyReward } from '../../loyalty-reward/entities/loyalty-reward.entity';
 import { LoyaltyCouponStatus } from '../constants/loyalty-coupons-status.enum';
+import { Order } from '../../../orders/entities/order.entity';
 
 @Entity('loyalty_coupons')
 export class LoyaltyCoupon {
@@ -50,6 +51,18 @@ export class LoyaltyCoupon {
     reward: LoyaltyReward;
 
     @ApiProperty({
+        example: 1,
+        description: 'ID of the order where the coupon was applied',
+        required: false,
+    })
+    @Column({ name: 'order_id', type: 'bigint', nullable: true })
+    orderId: number | null;
+
+    @ManyToOne(() => Order, { nullable: true })
+    @JoinColumn({ name: 'order_id' })
+    order: Order | null;
+
+    @ApiProperty({
         example: 'ACTIVE',
         description: 'Status of the coupon',
         enum: LoyaltyCouponStatus,
@@ -85,5 +98,8 @@ export class LoyaltyCoupon {
         required: false,
     })
     @Column({ name: 'redeemed_at', type: 'timestamp', nullable: true })
-    redeemedAt: Date;
+    redeemedAt: Date | null;
+
+    @Column({ default: true })
+    is_active: boolean;
 }

@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsString, IsNumber, Min, IsEnum, IsDateString, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsNotEmpty, IsString, IsDateString, IsEnum, IsOptional, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 import { LoyaltyCouponStatus } from '../constants/loyalty-coupons-status.enum';
 
@@ -30,31 +30,31 @@ export class CreateLoyaltyCouponDto {
     @Type(() => Number)
     reward_id: number;
 
-    @ApiPropertyOptional({
-        example: 'ACTIVE',
-        description: 'Status of the coupon',
-        enum: LoyaltyCouponStatus,
-        default: LoyaltyCouponStatus.ACTIVE,
-    })
-    @IsOptional()
-    @IsEnum(LoyaltyCouponStatus)
-    status?: LoyaltyCouponStatus;
-
-    @ApiProperty({
-        example: 10.50,
-        description: 'Discount value associated with the coupon',
-    })
-    @IsNumber()
-    @Min(0)
-    @IsNotEmpty()
-    @Type(() => Number)
-    discount_value: number;
-
     @ApiProperty({
         description: 'Expiration date of the coupon',
-        example: '2024-12-31T23:59:59Z',
+        example: '2026-12-31T23:59:59Z',
     })
     @IsDateString()
     @IsNotEmpty()
-    expires_at: Date;
+    expires_at: string;
+
+    @ApiProperty({
+        enum: LoyaltyCouponStatus,
+        description: 'Status of the coupon',
+        example: LoyaltyCouponStatus.ACTIVE,
+        required: false,
+    })
+    @IsEnum(LoyaltyCouponStatus)
+    @IsOptional()
+    status?: LoyaltyCouponStatus;
+
+    @ApiProperty({
+        example: 10,
+        description: 'Discount value of the coupon',
+        required: false,
+    })
+    @IsNumber()
+    @IsOptional()
+    @Type(() => Number)
+    discount_value?: number;
 }

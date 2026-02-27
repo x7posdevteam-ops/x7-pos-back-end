@@ -40,8 +40,6 @@ export class LoyaltyRewardsRedemtionsService {
       loyalty_customer_id,
       reward_id,
       order_id,
-      redeemed_points,
-      ...redemptionData
     } = createLoyaltyRewardsRedemtionDto;
 
     const loyaltyCustomer = await this.loyaltyCustomerRepo.findOne({
@@ -57,12 +55,6 @@ export class LoyaltyRewardsRedemtionsService {
       ErrorHandler.notFound(ErrorMessage.LOYALTY_CUSTOMER_NOT_FOUND);
     }
 
-    // 1. Validate Points
-    if (loyaltyCustomer.currentPoints < redeemed_points) {
-      // Assuming ErrorHandler has a method for bad request or custom logic
-      ErrorHandler.badRequest('Insufficient loyalty points');
-    }
-
     const reward = await this.loyaltyRewardRepo.findOne({
       where: { id: reward_id },
       relations: ['loyaltyProgram'],
@@ -74,6 +66,14 @@ export class LoyaltyRewardsRedemtionsService {
 
     if (Number(reward.loyaltyProgram.merchantId) !== Number(merchantId)) {
       ErrorHandler.notFound(ErrorMessage.LOYALTY_REWARD_NOT_FOUND);
+    }
+
+    // Usar el costo oficial de la reward — no lo define el cliente
+    const pointsToDeduct = reward.costPoints;
+
+    // Validate Points
+    if (loyaltyCustomer.currentPoints < pointsToDeduct) {
+      ErrorHandler.badRequest('Insufficient loyalty points');
     }
 
     const order = await this.orderRepo.findOneBy({
@@ -98,27 +98,76 @@ export class LoyaltyRewardsRedemtionsService {
     await queryRunner.startTransaction();
 
     try {
-      // 2. Create Redemption
+      // Check if active redemption with same key already exists
+      const existingActive = await queryRunner.manager.findOne(LoyaltyRewardsRedemtion, {
+        where: {
+          loyaltyCustomerId: loyalty_customer_id,
+          rewardId: reward_id,
+          orderId: order_id,
+          is_active: true,
+        },
+      });
+
+      if (existingActive) {
+        await queryRunner.rollbackTransaction();
+        ErrorHandler.exists('Redemption already exists for this customer, reward and order');
+      }
+
+      // Check if there's an inactive one to reactivate
+      const existingInactive = await queryRunner.manager.findOne(LoyaltyRewardsRedemtion, {
+        where: {
+          loyaltyCustomerId: loyalty_customer_id,
+          rewardId: reward_id,
+          orderId: order_id,
+          is_active: false,
+        },
+      });
+
+      if (existingInactive) {
+        // Reactivate
+        existingInactive.is_active = true;
+        existingInactive.redeemedPoints = pointsToDeduct;
+        existingInactive.redeemedAt = new Date();
+        await queryRunner.manager.save(existingInactive);
+
+        // Deduct points again
+        loyaltyCustomer.currentPoints -= pointsToDeduct;
+        await queryRunner.manager.save(loyaltyCustomer);
+
+        const pointTransaction = queryRunner.manager.create(LoyaltyPointTransaction, {
+          loyaltyCustomer,
+          order,
+          source: LoyaltyPointsSource.REDEMPTION,
+          points: -pointsToDeduct,
+          description: `Redemption of reward: ${reward.name} (reactivated)`,
+        });
+        await queryRunner.manager.save(pointTransaction);
+        await queryRunner.commitTransaction();
+
+        return this.findOne(existingInactive.id, merchantId, 'Created');
+      }
+
+      // Create new
       const newRedemption = queryRunner.manager.create(LoyaltyRewardsRedemtion, {
         loyaltyCustomer,
         reward,
         order,
-        redeemedPoints: redeemed_points,
-        ...redemptionData,
+        redeemedPoints: pointsToDeduct,
+        redeemedAt: new Date(),
       });
 
       const savedRedemption = await queryRunner.manager.save(newRedemption);
 
-      // 3. Deduct Points
-      loyaltyCustomer.currentPoints -= redeemed_points;
+      // Deduct Points
+      loyaltyCustomer.currentPoints -= pointsToDeduct;
       await queryRunner.manager.save(loyaltyCustomer);
 
-      // 4. Create Transaction Record
+      // Create Transaction Record
       const pointTransaction = queryRunner.manager.create(LoyaltyPointTransaction, {
         loyaltyCustomer,
         order,
         source: LoyaltyPointsSource.REDEMPTION,
-        points: -redeemed_points,
+        points: -pointsToDeduct,
         description: `Redemption of reward: ${reward.name}`,
       });
       await queryRunner.manager.save(pointTransaction);
@@ -148,7 +197,8 @@ export class LoyaltyRewardsRedemtionsService {
       .leftJoinAndSelect('loyaltyCustomer.loyaltyProgram', 'program')
       .leftJoinAndSelect('redemption.reward', 'reward')
       .leftJoinAndSelect('redemption.order', 'order')
-      .where('program.merchantId = :merchantId', { merchantId });
+      .where('program.merchantId = :merchantId', { merchantId })
+      .andWhere('redemption.is_active = :isActive', { isActive: true });
 
     if (query.min_redeemed_points) {
       queryBuilder.andWhere('redemption.redeemedPoints >= :minPoints', {
@@ -232,7 +282,8 @@ export class LoyaltyRewardsRedemtionsService {
       .leftJoinAndSelect('redemption.reward', 'reward')
       .leftJoinAndSelect('redemption.order', 'order')
       .where('redemption.id = :id', { id })
-      .andWhere('program.merchantId = :merchantId', { merchantId });
+      .andWhere('program.merchantId = :merchantId', { merchantId })
+      .andWhere('redemption.is_active = :isActive', { isActive: true });
 
     const redemption = await queryBuilder.getOne();
 
@@ -317,7 +368,8 @@ export class LoyaltyRewardsRedemtionsService {
       .leftJoinAndSelect('redemption.loyaltyCustomer', 'loyaltyCustomer')
       .leftJoinAndSelect('loyaltyCustomer.loyaltyProgram', 'program')
       .where('redemption.id = :id', { id })
-      .andWhere('program.merchantId = :merchantId', { merchantId });
+      .andWhere('program.merchantId = :merchantId', { merchantId })
+      .andWhere('redemption.is_active = :isActive', { isActive: true });
 
     const redemption = await queryBuilder.getOne();
 
@@ -394,20 +446,18 @@ export class LoyaltyRewardsRedemtionsService {
         // Transaction log for refund
         const pointTransaction = queryRunner.manager.create(LoyaltyPointTransaction, {
           loyaltyCustomer,
-          order: redemption.order, // or null
-          source: LoyaltyPointsSource.MANUAL_ADJUST, // or make a new enum REFUND
+          order: redemption.order,
+          source: LoyaltyPointsSource.MANUAL_ADJUST,
           points: redemption.redeemedPoints,
           description: `Refund for redemption ${id}`,
         });
         await queryRunner.manager.save(pointTransaction);
       }
 
-      await queryRunner.manager.remove(redemption);
+      // Logical delete
+      redemption.is_active = false;
+      await queryRunner.manager.save(redemption);
       await queryRunner.commitTransaction();
-
-      // We can't return the standard findOne because it's deleted. 
-      // We return the captured state or a generic success message.
-      // But adhering to the interface contract of returning OneLoyaltyRewardsRedemtionResponse:
 
       const dataForResponse: LoyaltyRewardsRedemtionResponseDto = {
         id: redemption.id,
