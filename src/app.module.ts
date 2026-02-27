@@ -141,6 +141,8 @@ import { TipPoolMembersModule } from './tips/tip-pool-members/tip-pool-members.m
 import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.entity';
 import { QROrderItemModule } from './qr-code/qr-order-item/qr-order-item.module';
 import { QROrderItem } from './qr-code/qr-order-item/entity/qr-order-item.entity';
+import { LoyaltyRewardsRedemtion } from './loyalty/loyalty-rewards-redemtions/entities/loyalty-rewards-redemtion.entity';
+import { LoyaltyCoupon } from './loyalty/loyalty-coupons/entities/loyalty-coupon.entity';
 
 @Module({
   imports: [
@@ -212,6 +214,8 @@ import { QROrderItem } from './qr-code/qr-order-item/entity/qr-order-item.entity
           LoyaltyCustomer,
           LoyaltyPointTransaction,
           LoyaltyReward,
+          LoyaltyRewardsRedemtion,
+          LoyaltyCoupon,
           OnlineMenuCategory,
           OnlineMenuItem,
           OnlineOrder,
