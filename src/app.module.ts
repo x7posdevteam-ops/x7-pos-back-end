@@ -99,7 +99,7 @@ import { OnlinePayment } from './online-ordering-system/online-payment/entities/
 import { KitchenDisplayDeviceModule } from './kitchen-display-system/kitchen-display-device/kitchen-display-device.module';
 import { KitchenOrderModule } from './kitchen-display-system/kitchen-order/kitchen-order.module';
 import { QRMenuSection } from './qr-code/qr-menu-section/entity/qr-menu-section.entity';
-import { QrMenuSectionModule } from './qr-code/qr-menu-section/qr-menu-section.module';
+
 import { LoyaltyPointTransaction } from './loyalty/loyalty-points-transaction/entities/loyalty-points-transaction.entity';
 import { LoyaltyReward } from './loyalty/loyalty-reward/entities/loyalty-reward.entity';
 import { QRMenuSectionModule } from './qr-code/qr-menu-section/qr-menu-section.module';
