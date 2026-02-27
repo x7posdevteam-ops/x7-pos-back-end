@@ -139,6 +139,8 @@ import { TipPoolsModule } from './tips/tip-pools/tip-pools.module';
 import { TipPool } from './tips/tip-pools/entities/tip-pool.entity';
 import { TipPoolMembersModule } from './tips/tip-pool-members/tip-pool-members.module';
 import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.entity';
+import { LoyaltyRewardsRedemtion } from './loyalty/loyalty-rewards-redemtions/entities/loyalty-rewards-redemtion.entity';
+import { LoyaltyCoupon } from './loyalty/loyalty-coupons/entities/loyalty-coupon.entity';
 
 @Module({
   imports: [
@@ -210,6 +212,8 @@ import { TipPoolMember } from './tips/tip-pool-members/entities/tip-pool-member.
           LoyaltyCustomer,
           LoyaltyPointTransaction,
           LoyaltyReward,
+          LoyaltyRewardsRedemtion,
+          LoyaltyCoupon,
           OnlineMenuCategory,
           OnlineMenuItem,
           OnlineOrder,
