@@ -259,7 +259,7 @@ export class ModifiersService {
       .leftJoinAndSelect('product.merchant', 'merchant')
       .where('modifier.id = :id', { id })
       .andWhere('modifier.isActive = :isActive', { isActive: true })
-      .andWhere('product.merchantId = :merchantId', { merchant_id })
+      .andWhere('product.merchantId = :merchantId', { merchantId: merchant_id })
       .getOne();
 
     if (!modifier) {
@@ -313,7 +313,7 @@ export class ModifiersService {
       .leftJoinAndSelect('product.merchant', 'merchant')
       .where('modifier.id = :id', { id })
       .andWhere('modifier.isActive = :isActive', { isActive: true })
-      .andWhere('product.merchantId = :merchantId', { merchant_id })
+      .andWhere('product.merchantId = :merchantId', { merchantId: merchant_id })
       .getOne();
 
     if (!modifier) {

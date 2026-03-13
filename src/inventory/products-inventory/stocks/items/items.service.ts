@@ -211,7 +211,7 @@ export class ItemsService {
       .leftJoinAndSelect('item.location', 'location')
       .where('item.id = :id', { id })
       .andWhere('product.merchantId = :merchantId', { merchantId })
-      .andWhere('item.isActive = :isActive', { isActive: true })
+      .andWhere('item.isActive = :isActive', { isActive: whereCondition.isActive })
       .getOne();
 
     if (!item) {

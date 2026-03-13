@@ -52,8 +52,8 @@ export class Product {
     example: 10,
     description: 'Category ID associated with the product',
   })
-  @Column({ type: 'int' })
-  categoryId: number;
+  @Column({ type: 'int', nullable: true })
+  categoryId: number | null;
 
   @ManyToOne(() => Category, (category) => category.products, {
     onDelete: 'SET NULL',

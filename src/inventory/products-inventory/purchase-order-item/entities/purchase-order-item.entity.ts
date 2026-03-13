@@ -51,7 +51,7 @@ export class PurchaseOrderItem {
   @JoinColumn({ name: 'purchaseOrderId' })
   purchaseOrder: PurchaseOrder;
 
-  @ManyToOne(() => Product, (product) => product.variants, {
+  @ManyToOne(() => Product, (product) => product.purchaseOrderItems, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })

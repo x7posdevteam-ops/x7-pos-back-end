@@ -1,52 +1,48 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ReceiptStatus } from '../constants/receipt-status.enum';
 import { SuccessResponse } from 'src/common/dtos/success-response.dto';
+
+import { ReceiptType } from '../constants/receipt-type.enum';
 
 export class ReceiptResponseDto {
   @ApiProperty({ example: 1 })
   id: number;
 
   @ApiProperty({ example: 200 })
-  orderId: number;
+  order_id: number;
 
-  @ApiProperty({ example: 'invoice' })
-  type: string;
+  @ApiProperty({ example: ReceiptType.INVOICE, enum: ReceiptType })
+  type: ReceiptType;
 
-  @ApiProperty({ example: '{"tax_id": "12345678", "fiscal_number": "ABC123"}', required: false })
-  fiscalData?: string | null;
+  @ApiProperty({ example: '{"tax_id": "12345678", "fiscal_number": "ABC123"}', required: false, nullable: true })
+  fiscal_data?: string | null;
 
-  @ApiProperty({ example: 'active', enum: ReceiptStatus })
-  status: ReceiptStatus;
+  @ApiProperty({ example: 100.0 })
+  subtotal: number;
+
+  @ApiProperty({ example: 19.0 })
+  total_tax: number;
+
+  @ApiProperty({ example: 5.0 })
+  total_discount: number;
+
+  @ApiProperty({ example: 114.0 })
+  grand_total: number;
+
+  @ApiProperty({ example: 'USD' })
+  currency: string;
+
 
   @ApiProperty({ example: '2024-01-15T08:00:00Z' })
-  createdAt: Date;
+  created_at: Date;
 
   @ApiProperty({ example: '2024-01-15T09:00:00Z' })
-  updatedAt: Date;
+  updated_at: Date;
 }
 
 export class OneReceiptResponseDto extends SuccessResponse {
-  @ApiProperty({ type: ReceiptResponseDto })
+  @ApiProperty({
+    type: () => ReceiptResponseDto,
+    description: 'The receipt',
+  })
   data: ReceiptResponseDto;
 }
-
-export class PaginatedReceiptsResponseDto extends SuccessResponse {
-  @ApiProperty({ type: [ReceiptResponseDto] })
-  data: ReceiptResponseDto[];
-
-  @ApiProperty({
-    example: { page: 1, limit: 10, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
-  })
-  paginationMeta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
-
-
-

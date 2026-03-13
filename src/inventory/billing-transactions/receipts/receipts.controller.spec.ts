@@ -9,9 +9,9 @@ import { CreateReceiptDto } from './dto/create-receipt.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
 import { GetReceiptsQueryDto } from './dto/get-receipts-query.dto';
 import { OneReceiptResponseDto, ReceiptResponseDto } from './dto/receipt-response.dto';
-import { PaginatedReceiptsResponseDto } from './dto/receipt-response.dto';
-import { ReceiptStatus } from './constants/receipt-status.enum';
+import { AllPaginatedReceipts } from './dto/all-paginated-receipts.dto';
 import { ForbiddenException } from '@nestjs/common';
+import { ReceiptType } from './constants/receipt-type.enum';
 
 describe('ReceiptsController', () => {
   let controller: ReceiptsController;
@@ -39,12 +39,16 @@ describe('ReceiptsController', () => {
 
   const mockReceiptResponseData: ReceiptResponseDto = {
     id: 1,
-    orderId: 1,
-    type: 'invoice',
-    fiscalData: '{"tax_id": "12345678", "fiscal_number": "ABC123"}',
-    status: ReceiptStatus.ACTIVE,
-    createdAt: new Date('2024-01-15T08:00:00Z'),
-    updatedAt: new Date('2024-01-15T08:00:00Z'),
+    order_id: 1,
+    type: ReceiptType.INVOICE,
+    fiscal_data: '{"tax_id": "12345678", "fiscal_number": "ABC123"}',
+    subtotal: 100.0,
+    total_tax: 19.0,
+    total_discount: 0,
+    grand_total: 119.0,
+    currency: 'USD',
+    created_at: new Date('2024-01-15T08:00:00Z'),
+    updated_at: new Date('2024-01-15T08:00:00Z'),
   };
 
   const mockOneReceiptResponse: OneReceiptResponseDto = {
@@ -53,18 +57,16 @@ describe('ReceiptsController', () => {
     data: mockReceiptResponseData,
   };
 
-  const mockPaginatedResponse: PaginatedReceiptsResponseDto = {
+  const mockPaginatedResponse: AllPaginatedReceipts = {
     statusCode: 200,
     message: 'Receipts retrieved successfully',
     data: [mockReceiptResponseData],
-    paginationMeta: {
-      page: 1,
-      limit: 10,
-      total: 1,
-      totalPages: 1,
-      hasNext: false,
-      hasPrev: false,
-    },
+    page: 1,
+    limit: 10,
+    total: 1,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
   };
 
   beforeEach(async () => {
@@ -93,8 +95,9 @@ describe('ReceiptsController', () => {
   describe('POST /receipts (create)', () => {
     const createDto: CreateReceiptDto = {
       orderId: 1,
-      type: 'invoice',
+      type: ReceiptType.INVOICE,
       fiscalData: '{"tax_id": "12345678", "fiscal_number": "ABC123"}',
+      currency: 'USD',
     };
 
     it('should create a new receipt successfully', async () => {
@@ -108,7 +111,7 @@ describe('ReceiptsController', () => {
       expect(result.statusCode).toBe(201);
       expect(result.message).toBe('Receipt created successfully');
       expect(result.data.id).toBe(1);
-      expect(result.data.type).toBe('invoice');
+      expect(result.data.type).toBe(ReceiptType.INVOICE);
     });
 
     it('should handle service errors during creation', async () => {
@@ -163,7 +166,7 @@ describe('ReceiptsController', () => {
       expect(result.statusCode).toBe(200);
       expect(result.message).toBe('Receipts retrieved successfully');
       expect(result.data).toHaveLength(1);
-      expect(result.paginationMeta).toBeDefined();
+      expect(result.page).toBeDefined();
     });
 
     it('should handle empty query parameters', async () => {
@@ -179,8 +182,7 @@ describe('ReceiptsController', () => {
     it('should handle query with filters', async () => {
       const queryWithFilters: GetReceiptsQueryDto = {
         orderId: 1,
-        type: 'invoice',
-        status: ReceiptStatus.ACTIVE,
+        type: ReceiptType.INVOICE,
         page: 1,
         limit: 20,
       };
@@ -271,7 +273,7 @@ describe('ReceiptsController', () => {
   describe('PUT /receipts/:id (update)', () => {
     const receiptId = 1;
     const updateDto: UpdateReceiptDto = {
-      type: 'receipt',
+      type: ReceiptType.RECEIPT,
       fiscalData: '{"tax_id": "87654321"}',
     };
 
@@ -281,8 +283,8 @@ describe('ReceiptsController', () => {
         message: 'Receipt updated successfully',
         data: {
           ...mockReceiptResponseData,
-          type: 'receipt',
-          fiscalData: '{"tax_id": "87654321"}',
+          type: ReceiptType.RECEIPT,
+          fiscal_data: '{"tax_id": "87654321"}',
         },
       };
       const updateSpy = jest.spyOn(service, 'update');
@@ -294,17 +296,17 @@ describe('ReceiptsController', () => {
       expect(result).toEqual(updatedResponse);
       expect(result.statusCode).toBe(200);
       expect(result.message).toBe('Receipt updated successfully');
-      expect(result.data.type).toBe('receipt');
+      expect(result.data.type).toBe(ReceiptType.RECEIPT);
     });
 
     it('should handle partial updates', async () => {
-      const partialDto: UpdateReceiptDto = { type: 'receipt' };
+      const partialDto: UpdateReceiptDto = { type: ReceiptType.RECEIPT };
       const updatedResponse: OneReceiptResponseDto = {
         statusCode: 200,
         message: 'Receipt updated successfully',
         data: {
           ...mockReceiptResponseData,
-          type: 'receipt',
+          type: ReceiptType.RECEIPT,
         },
       };
       const updateSpy = jest.spyOn(service, 'update');

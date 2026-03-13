@@ -21,7 +21,7 @@ export class VariantsService {
     private readonly variantRepository: Repository<Variant>,
     @Inject(forwardRef(() => ProductsService))
     private readonly productsService: ProductsService,
-  ) {}
+  ) { }
 
   async create(
     merchant_id: number,
@@ -73,7 +73,11 @@ export class VariantsService {
     });
 
     if (existingButIsNotActive) {
-      existingButIsNotActive.isActive = true;
+      Object.assign(existingButIsNotActive, {
+        ...variantData,
+        productId: product.data.id,
+        isActive: true,
+      });
       await this.variantRepository.save(existingButIsNotActive);
       return this.findOne(existingButIsNotActive.id, merchant_id, 'Created');
     } else {
@@ -251,7 +255,7 @@ export class VariantsService {
       .leftJoinAndSelect('product.merchant', 'merchant')
       .where('variant.id = :id', { id })
       .andWhere('variant.isActive = :isActive', { isActive: true })
-      .andWhere('product.merchantId = :merchantId', { merchant_id })
+      .andWhere('product.merchantId = :merchantId', { merchantId: merchant_id })
       .getOne();
 
     if (!variant) {
@@ -303,7 +307,7 @@ export class VariantsService {
       .leftJoinAndSelect('product.merchant', 'merchant')
       .where('variant.id = :id', { id })
       .andWhere('variant.isActive = :isActive', { isActive: true })
-      .andWhere('product.merchantId = :merchantId', { merchant_id })
+      .andWhere('product.merchantId = :merchantId', { merchantId: merchant_id })
       .getOne();
 
     if (!variant) {

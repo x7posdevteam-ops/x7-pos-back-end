@@ -657,7 +657,7 @@ describe('VariantsService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(variantRepository.save).not.toHaveBeenCalled();
     });
@@ -773,7 +773,7 @@ describe('VariantsService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(variantRepository.save).toHaveBeenCalledWith(inactiveVariant);
 
@@ -806,7 +806,7 @@ describe('VariantsService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(variantRepository.save).not.toHaveBeenCalled();
     });

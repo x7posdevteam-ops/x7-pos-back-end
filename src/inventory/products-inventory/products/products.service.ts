@@ -32,7 +32,7 @@ export class ProductsService {
     private readonly supplierRepository: Repository<Supplier>,
     private readonly modifiersService: ModifiersService,
     private readonly variantsService: VariantsService,
-  ) {}
+  ) { }
   async create(
     merchant_id: number,
     createProductDto: CreateProductDto,
@@ -75,7 +75,14 @@ export class ProductsService {
       });
 
       if (existingButIsNotActive) {
-        existingButIsNotActive.isActive = true;
+        Object.assign(existingButIsNotActive, {
+          name,
+          sku,
+          basePrice,
+          categoryId,
+          supplierId,
+          isActive: true,
+        });
         await this.productRepository.save(existingButIsNotActive);
         return this.findOne(existingButIsNotActive.id, merchant_id, 'Created');
       } else {
@@ -155,28 +162,28 @@ export class ProductsService {
           basePrice: product.basePrice,
           merchant: product.merchant
             ? {
-                id: product.merchant.id,
-                name: product.merchant.name,
-              }
+              id: product.merchant.id,
+              name: product.merchant.name,
+            }
             : null,
           category: product.category
             ? {
-                id: product.category.id,
-                name: product.category.name,
-                parent: product.category.parent
-                  ? ({
-                      id: product.category.parent.id,
-                      name: product.category.parent.name,
-                    } as CategoryLittleResponseDto)
-                  : null,
-              }
+              id: product.category.id,
+              name: product.category.name,
+              parent: product.category.parent
+                ? ({
+                  id: product.category.parent.id,
+                  name: product.category.parent.name,
+                } as CategoryLittleResponseDto)
+                : null,
+            }
             : null,
           supplier: product.supplier
             ? {
-                id: product.supplier.id,
-                name: product.supplier.name,
-                contactInfo: product.supplier.contactInfo,
-              }
+              id: product.supplier.id,
+              name: product.supplier.name,
+              contactInfo: product.supplier.contactInfo,
+            }
             : null,
         };
         return result;
@@ -236,28 +243,28 @@ export class ProductsService {
       basePrice: product.basePrice,
       merchant: product.merchant
         ? {
-            id: product.merchant.id,
-            name: product.merchant.name,
-          }
+          id: product.merchant.id,
+          name: product.merchant.name,
+        }
         : null,
       category: product.category
         ? {
-            id: product.category.id,
-            name: product.category.name,
-            parent: product.category.parent
-              ? ({
-                  id: product.category.parent.id,
-                  name: product.category.parent.name,
-                } as CategoryLittleResponseDto)
-              : null,
-          }
+          id: product.category.id,
+          name: product.category.name,
+          parent: product.category.parent
+            ? ({
+              id: product.category.parent.id,
+              name: product.category.parent.name,
+            } as CategoryLittleResponseDto)
+            : null,
+        }
         : null,
       supplier: product.supplier
         ? {
-            id: product.supplier.id,
-            name: product.supplier.name,
-            contactInfo: product.supplier.contactInfo,
-          }
+          id: product.supplier.id,
+          name: product.supplier.name,
+          contactInfo: product.supplier.contactInfo,
+        }
         : null,
     };
 

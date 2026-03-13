@@ -24,6 +24,8 @@ import { CashDrawer } from 'src/cash-drawers/entities/cash-drawer.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { Movement } from 'src/inventory/products-inventory/stocks/movements/entities/movement.entity';
 import { LoyaltyProgram } from 'src/loyalty/loyalty-programs/entities/loyalty-program.entity';
+import { PurchaseOrder } from 'src/inventory/products-inventory/purchase-order/entities/purchase-order.entity';
+import { Location } from 'src/inventory/products-inventory/stocks/locations/entities/location.entity';
 
 @Entity()
 export class Merchant {
@@ -221,4 +223,10 @@ export class Merchant {
 
   @OneToMany(() => LoyaltyProgram, (loyaltyProgram) => loyaltyProgram.merchant)
   loyaltyPrograms: LoyaltyProgram[];
+
+  @OneToMany(() => PurchaseOrder, (purchaseOrder) => purchaseOrder.merchant)
+  purchaseOrders: PurchaseOrder[];
+
+  @OneToMany(() => Location, (location) => location.merchant)
+  stockLocations: Location[];
 }

@@ -31,7 +31,7 @@ export class Location {
   @Column({ type: 'int' })
   merchantId: number;
 
-  @ManyToOne(() => Merchant, (merchant) => merchant.categories, {
+  @ManyToOne(() => Merchant, (merchant) => merchant.stockLocations, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })

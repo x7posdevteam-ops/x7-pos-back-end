@@ -576,7 +576,7 @@ describe('ModifiersService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(modifierRepository.findOne).toHaveBeenCalledWith({
         where: {
@@ -615,7 +615,7 @@ describe('ModifiersService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(modifierRepository.save).not.toHaveBeenCalled();
     });
@@ -715,7 +715,7 @@ describe('ModifiersService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(modifierRepository.save).toHaveBeenCalledWith(inactiveModifier);
 
@@ -773,7 +773,7 @@ describe('ModifiersService', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.merchantId = :merchantId',
-        { merchant_id: merchantId },
+        { merchantId: merchantId },
       );
       expect(modifierRepository.save).not.toHaveBeenCalled();
     });

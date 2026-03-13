@@ -4,7 +4,8 @@ import { CreateReceiptDto } from './dto/create-receipt.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
 import { GetReceiptsQueryDto, ReceiptSortBy } from './dto/get-receipts-query.dto';
 import { ApiBearerAuth, ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiExtraModels, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { OneReceiptResponseDto, PaginatedReceiptsResponseDto } from './dto/receipt-response.dto';
+import { OneReceiptResponseDto } from './dto/receipt-response.dto';
+import { AllPaginatedReceipts } from './dto/all-paginated-receipts.dto';
 import { ErrorResponse } from 'src/common/dtos/error-response.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -19,7 +20,7 @@ import { Scope } from 'src/users/constants/scope.enum';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('receipts')
 export class ReceiptsController {
-  constructor(private readonly receiptsService: ReceiptsService) {}
+  constructor(private readonly receiptsService: ReceiptsService) { }
 
   @Post()
   @Roles(UserRole.MERCHANT_ADMIN)
@@ -53,16 +54,15 @@ export class ReceiptsController {
   @ApiOperation({ summary: 'Get all receipts' })
   @ApiQuery({ name: 'orderId', required: false, type: Number })
   @ApiQuery({ name: 'type', required: false, type: String })
-  @ApiQuery({ name: 'status', required: false, enum: ['active', 'deleted'] })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'sortBy', required: false, enum: Object.values(ReceiptSortBy) })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
-  @ApiOkResponse({ description: 'Receipts retrieved', type: PaginatedReceiptsResponseDto })
+  @ApiOkResponse({ description: 'Receipts retrieved', type: AllPaginatedReceipts })
   @ApiBadRequestResponse({ description: 'Invalid query', type: ErrorResponse })
   @ApiUnauthorizedResponse({ description: 'Unauthorized', type: ErrorResponse })
   @ApiForbiddenResponse({ description: 'Forbidden', type: ErrorResponse })
-  async findAll(@Query() query: GetReceiptsQueryDto, @Request() req: any): Promise<PaginatedReceiptsResponseDto> {
+  async findAll(@Query() query: GetReceiptsQueryDto, @Request() req: any): Promise<AllPaginatedReceipts> {
     const authenticatedUserMerchantId = req.user?.merchant?.id;
     return this.receiptsService.findAll(query, authenticatedUserMerchantId);
   }

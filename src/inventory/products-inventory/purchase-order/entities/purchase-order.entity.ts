@@ -23,7 +23,7 @@ export class PurchaseOrder {
   @Column({ name: 'merchantId' })
   merchantId: number;
 
-  @ManyToOne(() => Merchant, (merchant) => merchant.products, {
+  @ManyToOne(() => Merchant, (merchant) => merchant.purchaseOrders, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
