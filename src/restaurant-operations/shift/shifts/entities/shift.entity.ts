@@ -13,7 +13,6 @@ import { ShiftStatus } from '../constants/shift-status.enum';
 import { ShiftAssignment } from '../../shift-assignments/entities/shift-assignment.entity';
 import { TableAssignment } from 'src/restaurant-operations/dining-system/table-assignments/entities/table-assignment.entity';
 import { CashDrawer } from '../../../cashdrawer/cash-drawers/entities/cash-drawer.entity';
-import { Order } from 'src/restaurant-operations/pos/orders/entities/order.entity';
 
 @Entity()
 export class Shift {
@@ -102,13 +101,4 @@ export class Shift {
   })
   @OneToMany(() => CashDrawer, (cashDrawer) => cashDrawer.shift)
   cashDrawers: CashDrawer[];
-
-  @ApiProperty({
-    type: () => Order,
-    isArray: true,
-    required: false,
-    description: 'List of orders associated with this shift',
-  })
-  @OneToMany(() => Order, (order) => order.shift)
-  orders: Order[];
 }
