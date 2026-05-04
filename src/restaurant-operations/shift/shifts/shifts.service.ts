@@ -6,15 +6,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, EntityManager, Not, Between, Like } from 'typeorm';
+import { Repository, EntityManager, Not, Between } from 'typeorm';
 import { Shift } from './entities/shift.entity';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
-import {
-  ShiftResponseDto,
-  OneShiftResponseDto,
-  AllShiftsResponseDto,
-} from './dto/shift-response.dto';
+import { OneShiftResponseDto } from './dto/shift-response.dto';
 import { GetShiftsQueryDto } from './dto/get-shifts-query.dto';
 import {
   PaginatedShiftsResponseDto,
