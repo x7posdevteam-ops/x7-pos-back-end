@@ -3,7 +3,7 @@ import './polyfill';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as dotenv from 'dotenv';
@@ -13,9 +13,28 @@ import { RedisIoAdapter } from './realtime/adapters/redis-io.adapter';
 
 dotenv.config();
 
+const logger = new Logger('Bootstrap');
+
+// Capturadores globales de errores fatales
+process.on('uncaughtException', (err: Error) => {
+  logger.error('=== UNCAUGHT EXCEPTION FATAL ===', err.stack || err.message);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  const err = reason as Error;
+  logger.error('=== UNHANDLED REJECTION FATAL ===', err?.stack || reason);
+});
+
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
+
+  // Habilitar la resolución de dependencias para class-validator
+  useContainer(app.select(AppModule), { fallbackOnErrors: true });
+
   app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
     .setTitle('X7-POS APIs')
     .setDescription('Authentication and user management documentation')
@@ -23,8 +42,7 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
 
   // Global validation pipe with better error messages
   app.useGlobalPipes(
@@ -60,17 +78,24 @@ async function bootstrap() {
     (process.env.WS_REDIS_ENABLED ?? '').toLowerCase() === 'true';
   const redisUrl = process.env.REDIS_URL;
   if (wsRedisEnabled && redisUrl) {
-    const redisAdapter = new RedisIoAdapter(app, redisUrl);
-    await redisAdapter.connectToRedis();
-    app.useWebSocketAdapter(redisAdapter);
+    try {
+      const redisAdapter = new RedisIoAdapter(app, redisUrl);
+      await redisAdapter.connectToRedis();
+      app.useWebSocketAdapter(redisAdapter);
+    } catch (redisError) {
+      logger.error('Error connecting Redis WebSocket Adapter:', redisError);
+    }
   }
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
-  useContainer(app.select(AppModule), { fallbackOnErrors: true });
-  await app.listen(process.env.PORT || 3000, '0.0.0.0');
-  //  await app.listen(process.env.PORT || 3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
+  logger.log(`Application is running on: http://localhost:${port}/api`);
 }
-void bootstrap();
+
+bootstrap().catch((err: Error) => {
+  logger.error('Error starting application', err.stack || err.message);
+});
