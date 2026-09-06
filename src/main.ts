@@ -16,7 +16,7 @@ dotenv.config();
 
 const logger = new Logger('Bootstrap');
 
-// Manejo seguro de excepciones fatales para evitar spammear el logger de Railway
+// Safe handling of fatal exceptions to avoid spamming the Railway logger
 process.on('uncaughtException', (err: Error) => {
   console.error('=== UNCAUGHT EXCEPTION FATAL ===', err.message);
   process.exit(1);
@@ -30,10 +30,9 @@ process.on('unhandledRejection', (reason: unknown) => {
 async function bootstrap() {
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // Configuración del logger optimizada para evitar superar el límite de 500 logs/sec de Railway
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: isProduction
-      ? ['error', 'warn', 'log']
+      ? ['error', 'warn']
       : ['log', 'error', 'warn', 'debug', 'verbose'],
   });
 
@@ -42,7 +41,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // Configuración de Swagger
+  // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('X7-POS APIs')
     .setDescription('Authentication and user management documentation')
@@ -77,12 +76,12 @@ async function bootstrap() {
     }),
   );
 
-  // Filtro de excepciones global
+  // Global exception filter
   app.useGlobalFilters(new ValidationExceptionFilter());
 
   app.enableCors();
 
-  // Adaptador de WebSockets con Redis
+  // WebSockets Adapter with Redis
   const wsRedisEnabled =
     (process.env.WS_REDIS_ENABLED ?? '').toLowerCase() === 'true';
   const redisUrl = process.env.REDIS_URL;
@@ -97,7 +96,7 @@ async function bootstrap() {
     }
   }
 
-  // Garantizar que la carpeta de uploads existe antes de servir estáticos
+  // Ensure the uploads folder exists before serving static files
   const uploadsPath = join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsPath)) {
     fs.mkdirSync(uploadsPath, { recursive: true });
@@ -107,7 +106,7 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // Capturar el puerto asignado por Railway
+  // Capture the port assigned by Railway
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
   logger.log(`Application running on port: ${port}`);
