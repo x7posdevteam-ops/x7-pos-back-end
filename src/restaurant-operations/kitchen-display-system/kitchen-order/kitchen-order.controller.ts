@@ -53,7 +53,7 @@ import { CancelKitchenOrderDto } from './dto/cancel-kitchen-order.dto';
 
 type AuthenticatedRequest = ExpressRequest & { user: AuthenticatedUser };
 
-@ApiTags('Kitchen Orders')
+@ApiTags('Restaurant operations - Kitchen Display System - Kitchen Orders')
 @ApiBearerAuth()
 @Controller('kitchen-orders')
 @RequireFeature(SUBSCRIPTION_FEATURE_IDS.KITCHEN_ORDERS)

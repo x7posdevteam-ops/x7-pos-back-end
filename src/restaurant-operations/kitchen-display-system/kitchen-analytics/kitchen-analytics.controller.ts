@@ -3,7 +3,12 @@ import { KitchenAnalyticsService } from './kitchen-analytics.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from 'src/auth/interfaces/authenticated-user.interface';
-import { ApiBearerAuth, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PrepTimeResponseDto } from './dto/prep-time-response.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/platform-saas/users/constants/role.enum';
@@ -11,6 +16,7 @@ import { Scope } from 'src/platform-saas/users/constants/scope.enum';
 import { Scopes } from 'src/auth/decorators/scopes.decorator';
 import { GetCancelledOrdersDto } from './dto/get-cancelled-orders.dto';
 
+@ApiTags('Restaurant operations - Kitchen Display System - Kitchen Analytics')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('kitchen-analytics')

@@ -48,7 +48,7 @@ import { Scopes } from 'src/auth/decorators/scopes.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 
-@ApiTags('Tables')
+@ApiTags('Restaurant operations - Dining System - Tables')
 @ApiBearerAuth()
 @Controller('tables')
 @RequireFeature(SUBSCRIPTION_FEATURE_IDS.TABLES)

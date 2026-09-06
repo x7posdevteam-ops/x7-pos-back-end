@@ -56,7 +56,7 @@ import { RefundOrderDto } from './dto/refund-order.dto';
 
 type AuthenticatedRequest = ExpressRequest & { user: AuthenticatedUser };
 
-@ApiTags('Orders')
+@ApiTags('Restaurant operations - POS - Orders')
 @ApiBearerAuth()
 @ApiExtraModels(ErrorResponse)
 @UseGuards(JwtAuthGuard, RolesGuard, FeatureAccessGuard)

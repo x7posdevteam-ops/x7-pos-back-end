@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
@@ -21,7 +20,6 @@ import { AuthenticatedUser } from 'src/auth/interfaces/authenticated-user.interf
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
@@ -53,7 +51,7 @@ import { Scopes } from '../../../auth/decorators/scopes.decorator';
 import { UserRole } from '../../../platform-saas/users/constants/role.enum';
 import { Scope } from '../../../platform-saas/users/constants/scope.enum';
 
-@ApiTags('Cash Drawers')
+@ApiTags('Restaurant operations - Cashdrawer - Cash Drawers')
 @ApiBearerAuth()
 @ApiExtraModels(
   CashDrawerResponseDto,
@@ -123,7 +121,8 @@ export class CashDrawersController {
       'Invalid input data, no active shift, or no linked collaborator profile',
     example: {
       statusCode: 400,
-      message: 'No active shift found. Start a shift before opening a cash drawer.',
+      message:
+        'No active shift found. Start a shift before opening a cash drawer.',
     },
   })
   @ApiUnauthorizedResponse({
@@ -264,7 +263,8 @@ export class CashDrawersController {
     name: 'status',
     required: false,
     enum: CashDrawerStatus,
-    description: 'Filter by cash drawer status (Open, Close, Pause, Discrepancy)',
+    description:
+      'Filter by cash drawer status (Open, Close, Pause, Discrepancy)',
   })
   @ApiQuery({
     name: 'createdDate',

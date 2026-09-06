@@ -154,7 +154,7 @@ let MOCK_LEDGER_ACCOUNTS: LedgerAccountDto[] = [
   },
 ];
 
-@ApiTags('Ledger Accounts Setup')
+@ApiTags('Finance & HR - Accounting - Ledger Accounts Setup')
 @ApiBearerAuth()
 @Controller('ledger-accounts')
 @UseGuards(JwtAuthGuard, RolesGuard)

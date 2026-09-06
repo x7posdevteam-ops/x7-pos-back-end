@@ -53,6 +53,13 @@ async function bootstrap() {
     'api/docs',
     app,
     SwaggerModule.createDocument(app, config),
+    {
+      swaggerOptions: {
+        tagsSorter: 'alpha', // Sort the tags alphabetically
+        operationsSorter: 'alpha', // Sort the endpoints alphabetically
+        docExpansion: 'none', // 'none' It collapses everything by default (tags and routes)
+      },
+    },
   );
 
   // ValidationPipe global
