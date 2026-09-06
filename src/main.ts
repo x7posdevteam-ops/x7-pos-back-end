@@ -10,24 +10,31 @@ import * as dotenv from 'dotenv';
 import { useContainer } from 'class-validator';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 import { RedisIoAdapter } from './realtime/adapters/redis-io.adapter';
+import * as fs from 'fs';
 
 dotenv.config();
 
 const logger = new Logger('Bootstrap');
 
-// Capturadores globales de errores fatales
+// Manejo seguro de excepciones fatales para evitar spammear el logger de Railway
 process.on('uncaughtException', (err: Error) => {
-  logger.error('=== UNCAUGHT EXCEPTION FATAL ===', err.stack || err.message);
+  console.error('=== UNCAUGHT EXCEPTION FATAL ===', err.message);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason: unknown) => {
   const err = reason as Error;
-  logger.error('=== UNHANDLED REJECTION FATAL ===', err?.stack || reason);
+  console.error('=== UNHANDLED REJECTION FATAL ===', err?.message || reason);
 });
 
 async function bootstrap() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Configuración del logger optimizada para evitar superar el límite de 500 logs/sec de Railway
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: true,
+    logger: isProduction
+      ? ['error', 'warn', 'log']
+      : ['log', 'error', 'warn', 'debug', 'verbose'],
   });
 
   // Habilitar la resolución de dependencias para class-validator
@@ -35,6 +42,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  // Configuración de Swagger
   const config = new DocumentBuilder()
     .setTitle('X7-POS APIs')
     .setDescription('Authentication and user management documentation')
@@ -44,7 +52,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
 
-  // Global validation pipe with better error messages
+  // ValidationPipe global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -69,11 +77,12 @@ async function bootstrap() {
     }),
   );
 
-  // Global exception filter for validation errors
+  // Filtro de excepciones global
   app.useGlobalFilters(new ValidationExceptionFilter());
 
   app.enableCors();
 
+  // Adaptador de WebSockets con Redis
   const wsRedisEnabled =
     (process.env.WS_REDIS_ENABLED ?? '').toLowerCase() === 'true';
   const redisUrl = process.env.REDIS_URL;
@@ -82,20 +91,29 @@ async function bootstrap() {
       const redisAdapter = new RedisIoAdapter(app, redisUrl);
       await redisAdapter.connectToRedis();
       app.useWebSocketAdapter(redisAdapter);
+      logger.log('Redis WebSocket Adapter initialized successfully.');
     } catch (redisError) {
       logger.error('Error connecting Redis WebSocket Adapter:', redisError);
     }
   }
 
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+  // Garantizar que la carpeta de uploads existe antes de servir estáticos
+  const uploadsPath = join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+
+  app.useStaticAssets(uploadsPath, {
     prefix: '/uploads/',
   });
 
-  const port = process.env.PORT || 3000;
+  // Capturar el puerto asignado por Railway
+  const port = Number(process.env.PORT) || 3000;
   await app.listen(port, '0.0.0.0');
-  logger.log(`Application is running on: http://localhost:${port}/api`);
+  logger.log(`Application running on port: ${port}`);
 }
 
 bootstrap().catch((err: Error) => {
   logger.error('Error starting application', err.stack || err.message);
+  process.exit(1);
 });
