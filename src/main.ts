@@ -49,7 +49,11 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  SwaggerModule.setup('api', app, SwaggerModule.createDocument(app, config));
+  SwaggerModule.setup(
+    'api/docs',
+    app,
+    SwaggerModule.createDocument(app, config),
+  );
 
   // ValidationPipe global
   app.useGlobalPipes(
