@@ -421,8 +421,8 @@ export class KitchenOrderController {
   async cancelKitchenOrder(
     @Param('id') id: number,
     @Body() dto: CancelKitchenOrderDto,
-    @Request() req,
+    @Request() req: AuthenticatedUser,
   ) {
-    return this.kitchenOrderService.cancelKitchenOrder(id, dto, req.user);
+    return this.kitchenOrderService.cancelKitchenOrder(id, dto, req);
   }
 }

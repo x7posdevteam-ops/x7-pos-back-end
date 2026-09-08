@@ -174,8 +174,11 @@ export class TipSettlementsController {
     );
   }
   @Get('report')
-  getSettlementReport(@Query() query: QueryTipSettlementReportDto, @Req() req) {
-    return this.tipSettlementsService.getSettlementReport(query, req.user);
+  getSettlementReport(
+    @Query() query: QueryTipSettlementReportDto,
+    @Req() req: AuthenticatedUser,
+  ) {
+    return this.tipSettlementsService.getSettlementReport(query, req);
   }
   @Get(':id')
   @Roles(UserRole.PORTAL_ADMIN, UserRole.MERCHANT_ADMIN)
@@ -300,9 +303,9 @@ export class TipSettlementsController {
   @Patch('liquidated')
   async liquidatedTipSettlements(
     @Body() dto: LiquidatedTipSettlementsDto,
-    @Req() req,
+    @Req() req: AuthenticatedUser,
   ) {
-    return this.tipSettlementsService.liquidatedTipSettlements(dto, req.user);
+    return this.tipSettlementsService.liquidatedTipSettlements(dto, req);
   }
 
   @Post('cash-shifts/:shiftId/payout')

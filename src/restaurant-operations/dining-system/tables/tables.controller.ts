@@ -212,8 +212,9 @@ export class TablesController {
   ): Promise<OneTableResponseDto> {
     const authenticatedUser = req.user as AuthenticatedUser | undefined;
     const authenticatedUserMerchantId = authenticatedUser?.merchant?.id;
+    const authenticatedUserId = authenticatedUser?.id;
 
-    if (!authenticatedUserMerchantId) {
+    if (!authenticatedUserMerchantId || !authenticatedUserId) {
       throw new ForbiddenException(
         'User must be associated with a merchant to transfer tables',
       );
@@ -222,7 +223,7 @@ export class TablesController {
     return this.tableService.transfer(
       dto,
       authenticatedUserMerchantId,
-      authenticatedUser?.id as number,
+      authenticatedUserId,
     );
   }
 

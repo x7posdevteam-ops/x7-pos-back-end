@@ -53,10 +53,10 @@ export class KitchenAnalyticsController {
   @Roles(UserRole.PORTAL_ADMIN, UserRole.MERCHANT_ADMIN)
   async getCancelledOrders(
     @Query() query: GetCancelledOrdersDto,
-    @Request() req,
+    @Request() req: AuthenticatedUser,
   ) {
     const data = await this.service.getCancelledKitchenOrders(
-      req.user.merchant.id,
+      req.merchant.id,
       query.startDate,
       query.endDate,
     );
@@ -70,10 +70,8 @@ export class KitchenAnalyticsController {
 
   @Get('cancelled-orders/summary')
   @Roles(UserRole.PORTAL_ADMIN, UserRole.MERCHANT_ADMIN)
-  async getSummary(@Request() req) {
-    const data = await this.service.getCancellationSummary(
-      req.user.merchant.id,
-    );
+  async getSummary(@Request() req: AuthenticatedUser) {
+    const data = await this.service.getCancellationSummary(req.merchant.id);
 
     return {
       statusCode: 200,

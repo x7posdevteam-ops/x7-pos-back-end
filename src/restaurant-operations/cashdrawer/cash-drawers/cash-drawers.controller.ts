@@ -303,8 +303,11 @@ export class CashDrawersController {
     enum: ['ASC', 'DESC'],
     description: 'Sort order',
   })
-  async findAll(@Query() query: GetCashDrawersQueryDto, @Request() req) {
-    const authenticatedUserMerchantId = req.user?.merchant?.id;
+  async findAll(
+    @Query() query: GetCashDrawersQueryDto,
+    @Request() req: AuthenticatedUser,
+  ) {
+    const authenticatedUserMerchantId = req.merchant?.id;
     return this.cashDrawersService.findAll(query, authenticatedUserMerchantId);
   }
 
@@ -392,8 +395,11 @@ export class CashDrawersController {
     },
   })
   @ApiParam({ name: 'id', type: Number, description: 'Cash drawer ID' })
-  async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const authenticatedUserMerchantId = req.user?.merchant?.id;
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedUser,
+  ) {
+    const authenticatedUserMerchantId = req.merchant?.id;
     return this.cashDrawersService.findOne(id, authenticatedUserMerchantId);
   }
 
@@ -589,8 +595,11 @@ export class CashDrawersController {
     },
   })
   @ApiParam({ name: 'id', type: Number, description: 'Cash drawer ID' })
-  async remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const authenticatedUserMerchantId = req.user?.merchant?.id;
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedUser,
+  ) {
+    const authenticatedUserMerchantId = req.merchant?.id;
     return this.cashDrawersService.remove(id, authenticatedUserMerchantId);
   }
 }
